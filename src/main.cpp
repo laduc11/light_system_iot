@@ -103,32 +103,63 @@ void loraInit(void *pvParameters)
   xTaskCreate(taskLoraInit, "lora Init", 4096, NULL, 1, NULL);
 }
 
+#define MAX_BUFFER  10
+
 void uart_CB(void* pvparam) {
+  HardwareSerial *serial = (HardwareSerial *)pvparam;
+  uint8_t buffer_uart[MAX_BUFFER];
+  uint32_t stop;
   while (1) {
-    uint8_t *buffer = new uint8_t[120];
-    size_t size = 10;
-    size_t result = Serial1.read(buffer, size);
-    String str(buffer, result);
-    // if (result > 0 ) Serial.println((String)str, HEX);
-    if (result > 0) {
-      for (size_t i = 0; i < result; i++) {
-        char c = buffer[i];
-        Serial.print(c, HEX);
-      }
-      Serial.println();
+    stop = 0;
+    // Send dump data to Serial1 (LoRa)
+    uint8_t buffer_write[3] = {0xc1, 0x00, 0x02};
+    serial->write(buffer_write, 3);
+
+    Serial.printf("Sending data size: %ld\r\n", 3);
+    for (uint32_t i = 0; i < 3; ++i) {
+      Serial.print(buffer_write[i], HEX);
     }
-    delete [] buffer;
-    vTaskDelay(pdMS_TO_TICKS(100));
-  }  
+    Serial.println();
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    uint32_t size = 10;
+    // Reset buffer
+    for (uint32_t i = 0; i < MAX_BUFFER; ++i) {
+      buffer_uart[i] = 0;
+    }
+    // Read data from UART
+    stop = serial->readBytes(buffer_uart, size);
+
+    Serial.printf("Recieved data size: %ld\r\n", stop);
+    for (uint32_t i = 0; i < stop; ++i) {
+      Serial.print(buffer_uart[i], HEX);
+    }
+    Serial.println();
+    serial->flush();
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+}
+
+void binkLED(void *pvParam)
+{
+  digitalWrite(LED, HIGH);
+  Serial.println("LED ON, S0");
+
+  vTaskDelay(pdMS_TO_TICKS(2000));
+  digitalWrite(LED, LOW);
+  Serial.println("LED OFF, S0");
+  vTaskDelay(pdMS_TO_TICKS(2000));
 }
 
 void setup() {
 
   Serial.begin(115200, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
-  Serial1.begin(115200, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
+  Serial1.begin(9600, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
   pinMode(LED, OUTPUT);
-  xTaskCreate(uart_CB, "UART callback", 4096, nullptr, 1, nullptr);
-  vTaskStartScheduler();
+  
+  xTaskCreate(uart_CB, "UART callback", 4096, &Serial1, 1, nullptr);
+  // xTaskCreate(binkLED, "Blinky LED", 4096, nullptr, 1, nullptr);
+  // vTaskStartScheduler();
   // xTaskCreatePinnedToCore(uart_CB, "UART callback", 4096, nullptr, 3, nullptr, 0);
   // xTaskCreate(uart_CB, "UART callback", 4096, nullptr, 3, 0);
   // lora.Init(&Serial1, 9600, SERIAL_8N1, UART_LORA_TXD_PIN, UART_LORA_RXD_PIN);
@@ -141,11 +172,4 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  digitalWrite(LED, HIGH);
-  Serial.println("LED ON, S0");
-  // Serial1.println("Serial 1");
-  delay(2000);
-  digitalWrite(LED, LOW);
-  Serial.println("LED OFF, S0");
-  delay(2000);
 }
