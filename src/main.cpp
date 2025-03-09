@@ -32,14 +32,15 @@ void setup()
 {
   // Initialize device layer
   pinMode(INBUILD_LED_PIN, OUTPUT);
-  Serial.begin(LORA_DEFAULT_BAUDRATE, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
-  Serial1.begin(UART_DEFAUT_BAUDRATE, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
+  // LoRa use Serial -> Do not use Serial
+  Serial.begin(UART_DEFAUT_BAUDRATE, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   
   // Initialize Network layer
   connect_init();
   
   // Initialize Device layer
   device_init();
+  loraInit();
 
   Serial.println("ESP32 WROOM-32E Test");
   initWatchdogTimer(RESET_WATCHDOG_TIME);
@@ -49,6 +50,7 @@ void setup()
 
   // Create Task
   xTaskCreatePinnedToCore(taskLedBlink, "Task Blinky Led", 4096, NULL, 2, NULL, 1);
+  xTaskCreatePinnedToCore(loraReceiveCallback, "Task LoRa Callback", 4096, &Serial2, 2, NULL, 1);
 }
 
 void loop()
