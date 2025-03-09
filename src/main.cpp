@@ -153,7 +153,7 @@ void binkLED(void *pvParam)
 
 void setup() {
 
-  Serial.begin(115200, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
+  Serial.begin(9600, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   Serial1.begin(9600, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
   pinMode(LED, OUTPUT);
   
