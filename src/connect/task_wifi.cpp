@@ -4,32 +4,29 @@ void taskWifi(void *pvParameters)
 {
     addTaskToWatchdog(NULL);
     WiFi.mode(WIFI_STA);
-    String ssid = WIFI_SSID;
-    String password = WIFI_PASS;
 
     Serial.print("Connecting to SSID: ");
     Serial.println(WIFI_SSID);
- 
-    WiFi.begin(ssid.c_str(), password.c_str());
+
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
 
     int wifiRetryCount = 0;
     while (WiFi.status() != WL_CONNECTED && wifiRetryCount < 20)
     {
-        printlnData(MQTT_FEED_NOTHING, "Connecting to WiFi...");
+        Serial.printf("Attempt %d: WiFi Status = %d\n", wifiRetryCount + 1, WiFi.status());
         resetWatchdog();
-        Serial.print(".");
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(1000));
         wifiRetryCount++;
     }
 
     if (WiFi.status() != WL_CONNECTED)
     {
-        Serial.println("\nWiFi connection failed! Restarting...");
+        Serial.println("[ERROR] WiFi connection failed! Restarting in 5s...");
+        vTaskDelay(pdMS_TO_TICKS(5000));
         ESP.restart();
     }
 
-    printlnData(MQTT_FEED_NOTHING, "Connected to WiFi");
-    Serial.println("\nWiFi Connected!");
+    Serial.println("[INFO] WiFi Connected!");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
 
@@ -37,29 +34,31 @@ void taskWifi(void *pvParameters)
     {
         if (WiFi.status() != WL_CONNECTED)
         {
-            printlnData(MQTT_FEED_NOTHING, "Lost WiFi, reconnecting...");
-            WiFi.begin(ssid.c_str(), password.c_str());
+            Serial.println("[WARN] Lost WiFi! Attempting to reconnect...");
             int retryCount = 0;
+
             while (WiFi.status() != WL_CONNECTED && retryCount < 20)
             {
-                printlnData(MQTT_FEED_NOTHING, "Reconnecting to WiFi...");
+                Serial.printf("Reconnect attempt %d: WiFi Status = %d\n", retryCount + 1, WiFi.status());
                 resetWatchdog();
-                vTaskDelay(delay_wifi / portTICK_PERIOD_MS);
+                vTaskDelay(pdMS_TO_TICKS(1000));
                 retryCount++;
             }
 
             if (WiFi.status() == WL_CONNECTED)
             {
-                printlnData(MQTT_FEED_NOTHING, "Reconnected to WiFi...");
+                Serial.println("[INFO] WiFi Reconnected!");
             }
             else
             {
-                printlnData(MQTT_FEED_NOTHING, "WiFi reconnect failed, restarting...");
+                Serial.println("[ERROR] WiFi reconnect failed. Restarting in 5s...");
+                vTaskDelay(pdMS_TO_TICKS(5000));
                 ESP.restart();
             }
         }
+
         resetWatchdog();
-        vTaskDelay(delay_wifi / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(5000));
     }
 }
 

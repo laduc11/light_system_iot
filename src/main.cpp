@@ -4,6 +4,30 @@
 #define PUBLISH_INTERVAL 3000 // 4 giây
 
 unsigned long previousMillis = 0;
+
+void sendCorrectDataToGateway()
+{
+  JsonDocument jsonDoc;
+
+  const char *devices[] = {"test_2", "test_3", "test_4"};
+  const char *switchStates[] = {"high", "low", "low"};
+
+  for (int i = 0; i < 3; i++)
+  {
+    JsonArray deviceArray = jsonDoc[devices[i]].to<JsonArray>();
+    JsonObject statusObj = deviceArray.add<JsonObject>();
+    statusObj["switchstate"] = switchStates[i];
+  }
+
+  char buffer[512];
+  serializeJson(jsonDoc, buffer, sizeof(buffer));
+
+  publishData(MQTT_SENDING_VALUE, buffer);
+
+  Serial.println("Sending Data to Gateway:");
+  Serial.println(buffer);
+}
+
 void setup()
 {
   // for debug
@@ -16,33 +40,26 @@ void setup()
   connect_init();
   delay(delay_for_initialization);
   device_init();
+  sendCorrectDataToGateway();
 
-  // for initialize relayStatus
-  bool relay_status = digitalRead(RELAY_PIN) == HIGH;
-  JsonDocument relay_obj;
-  relay_obj["switchstate"] = relay_status ? "high" : "low";
-  char buffer[256];
-  serializeJson(relay_obj, buffer);
-  publishData(MQTT_SENDING_VALUE, buffer);
-  Serial.println("Sending Initialize Switch Status");
 }
 
 void loop()
 {
-  unsigned long currentMillis = millis();
+  // unsigned long currentMillis = millis();
 
-  if (currentMillis - previousMillis >= PUBLISH_INTERVAL)
-  {
-    previousMillis = currentMillis;
+  // if (currentMillis - previousMillis >= PUBLISH_INTERVAL)
+  // {
+  //   previousMillis = currentMillis;
 
-    int randomTemp = random(10, 100);
+  //   int randomTemp = random(10, 100);
 
-    JsonDocument doc;
-    doc["illuminance"] = randomTemp;
-    doc["longitude"] = LONGITUDE;
-    doc["latitude"] = LATITUDE;
-    char buffer[256];
-    serializeJson(doc, buffer);
-    publishData(MQTT_SENDING_VALUE, buffer);
-  }
+  //   JsonDocument doc;
+  //   doc["illuminance"] = randomTemp;
+  //   doc["longitude"] = LONGITUDE;
+  //   doc["latitude"] = LATITUDE;
+  //   char buffer[256];
+  //   serializeJson(doc, buffer);
+  //   publishData(MQTT_SENDING_VALUE, buffer);
+  // }
 }

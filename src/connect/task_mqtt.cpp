@@ -18,10 +18,9 @@ void callback(char *topic, byte *payload, unsigned int length)
     Serial.print("[MQTT] Payload: ");
     Serial.println(message);
 
-    if (String(topic).startsWith("v1/devices/me/rpc/request/"))
+    if (String(topic).startsWith("v1/gateway/rpc"))
     {
-        Serial.println("[MQTT] Data received from POLE_02");
-
+        Serial.println("[MQTT] Data received from Gateway");
         // Parse JSON
         JsonDocument doc;
         DeserializationError error = deserializeJson(doc, message);
@@ -32,48 +31,67 @@ void callback(char *topic, byte *payload, unsigned int length)
             Serial.println(error.f_str());
             return;
         }
+        String device = doc["device"].as<String>();
+        // Lấy object "data"
+        JsonObject data = doc["data"].as<JsonObject>();
 
-        String method = doc["method"].as<String>();
-        String params = doc["params"].as<String>();
+        String method = data["method"].as<String>();
+        String params = data["params"].as<String>();
 
-        Serial.print("[MQTT] Method: ");
+        Serial.print("Method: ");
         Serial.println(method);
-        Serial.print("[MQTT] Params: ");
+        Serial.print("Params: ");
         Serial.println(params);
+        if (device == "test_3" || device == "test_2" || device == "test_4")
+        {
+            if (method == "setState")
+            {
+                Serial.print("Check for ");
+                Serial.println(device);
+                // Code for sending message to control relay with LoRa to node
+                ////////////////
+                // To do code
 
-        if (method == "getRelayState")
-        {
+                //////////////
+                JsonDocument jsonDoc;
 
-            JsonDocument doc;
-            doc["switchState"] = "high";
-            char buffer[256];
-            serializeJson(doc, buffer);
-            publishData(MQTT_SENDING_VALUE, buffer);
-        }
-        if (method == "setState" && params == "high")
-        {
-            Serial.println("[MQTT] LED TURNED ON");
-            setRelayOn();
-            JsonDocument relay_obj;
-            relay_obj["switchstate"] = "high";
-            char buffer[256];
-            serializeJson(relay_obj, buffer);
-            publishData(MQTT_SENDING_VALUE, buffer);
-        }
-        else if (method == "setState" && params == "low")
-        {
-            Serial.println("[MQTT] LED TURNED OFF");
-            setRelayOff();
-            JsonDocument relay_obj;
-            relay_obj["switchstate"] = "low";
-            char buffer[256];
-            serializeJson(relay_obj, buffer);
-            publishData(MQTT_SENDING_VALUE, buffer);
-        }
-        if (method == "setPWM")
-        {
-            int pwm_value = params.toInt();
-            pwm_set_duty(pwm_value);
+                JsonArray deviceArray = jsonDoc[device].to<JsonArray>();
+                JsonObject statusObj = deviceArray.add<JsonObject>();
+                statusObj["switchstate"] = params;
+
+                char buffer[512];
+                serializeJson(jsonDoc, buffer, sizeof(buffer));
+
+                publishData(MQTT_SENDING_VALUE, buffer);
+
+                Serial.println("Sending Data to Gateway:");
+                Serial.println(buffer);
+            }
+            if (method == "setPWM")
+            {
+                Serial.print("Check for ");
+                Serial.println(device);
+
+                // Code for sending messag to adjust pwm value with LoRa to node
+
+                ///////////////
+                // To do code
+
+                //////////////
+                JsonDocument jsonDoc;
+
+                JsonArray deviceArray = jsonDoc[device].to<JsonArray>();
+                JsonObject statusObj = deviceArray.add<JsonObject>();
+                statusObj["pwm_value"] = params;
+
+                char buffer[512];
+                serializeJson(jsonDoc, buffer, sizeof(buffer));
+
+                publishData(MQTT_SENDING_VALUE, buffer);
+
+                Serial.println("Sending Data to Gateway:");
+                Serial.println(buffer);
+            }
         }
     }
 }
@@ -105,13 +123,14 @@ void reconnectMQTT()
 
         // String clientId = "ESP32Client" + String(random(0, 1000));
         String clientId = "pole_1";
-        if (client.connect(clientId.c_str(), user.c_str(), password.c_str()))
+        // if (client.connect(clientId.c_str(), user.c_str(), password.c_str()))
+        if (client.connect(clientId.c_str(), TOKEN_GATEWAY, ""))
         {
             printlnData(MQTT_FEED_NOTHING, "MQTT Connected");
 
 // Subscribe to topic put in here
 #ifdef _ESP_NUMBER_ONE_
-            client.subscribe(MQTT_FEED_POLE_02);
+            client.subscribe(MQTT_REQUEST_TOPIC);
             Serial.println("Successfully subscribe topic");
 #endif
 
@@ -138,7 +157,7 @@ void taskMQTT(void *pvParameters)
     client.setCallback(callback);
     Serial.println("check point mqtt");
 #ifdef _ESP_NUMBER_ONE_
-    client.subscribe(MQTT_FEED_POLE_02);
+    client.subscribe(MQTT_REQUEST_TOPIC);
 #endif
 
     while (true)

@@ -84,8 +84,8 @@
 
 #define MQTT_FEED_NOTHING ""
 // #define MQTT_FEED_POLE_02 "BK_SmartPole/feeds/V20"
-#define MQTT_SENDING_VALUE "v1/devices/me/telemetry"
-#define MQTT_FEED_POLE_02 "v1/devices/me/rpc/request/+"
+#define MQTT_SENDING_VALUE "v1/gateway/telemetry"
+#define MQTT_REQUEST_TOPIC "v1/devices/me/rpc/request/+"
 #define MQTT_FEED_TEST_LORA "BK_SmartPole/feeds/V5"
 #define MQTT_FEED_TEST_LORA_SEND "BK_SmartPole/feeds/V4"
 #define MQTT_FEED_TEST_MQTT "BK_SmartPole/feeds/V3"
@@ -93,8 +93,8 @@
 #define MQTT_FEED_TEST_DIMMING "BK_SmartPole/Feeds/V1"
 
 // DEFINE WIFI AP
-#define WIFI_SSID "22-08"
-#define WIFI_PASS "414414a2"
+#define WIFI_SSID "Fatcat"
+#define WIFI_PASS "lnss2136"
 
 // DEFINE DIMMING PWM
 #define PWM_CHANNEL 1
@@ -134,3 +134,6 @@
 // DEFINE LONG LAT
 const float LONGITUDE = 106.806;
 const float LATITUDE = 10.8801;
+
+// TOKEN GATEWAY
+#define TOKEN_GATEWAY "axeELNU4fOIwtUmJnPkL"
