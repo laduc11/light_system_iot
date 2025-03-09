@@ -45,31 +45,35 @@
 #define COUNT_DOWN false
 
 // DEFINE PIN
-#define POLE_LED_PIN 5
+#define POLE_LED_PIN            5
+
+// UART COMMON
+#define UART_RXD_DEBUG_PIN      16
+#define UART_TXD_DEBUG_PIN      17
+#define UART_DEFAUT_BAUDRATE    9600
 
 // DEFINE SETUP FOR PWM LEDC POLE LED
-#define LEDC_CHANEL 0
-#define FREQ_HZ 5000
-#define RESOLUTION 13
-#define INIT_DUTY_PWM 0
+#define LEDC_CHANEL             0
+#define FREQ_HZ                 5000
+#define RESOLUTION              13
+#define INIT_DUTY_PWM           0
 #define MAX_DUTY_PWM (1 << 13) - 1 // 2^13 -1
 
 // DEFINE LED
-#define INBUILD_LED_PIN 2
-#define LED_ON HIGH
-#define LED_OFF LOW
+#define INBUILD_LED_PIN         2
+#define LED_ON                  HIGH
+#define LED_OFF                 LOW
 
 // DEFINE LORA
 #define LORA_MAX_BUFFER_SIZE 32
 #define LORA_MAX_WAITING_LIST 64 // This is the maximum element in waiting ack list
 #define LORA_TIMER_FACTOR_MSG_RESEND 5
 #define LORA_MAX_TIMES_RESEND 3
+#define LORA_DEFAULT_BAUDRATE   9600
 
-#define UART_LORA_TXD_PIN 3
-#define UART_LORA_RXD_PIN 1
-#define UART_LORA_RXD_DEBUG_PIN 16
-#define UART_LORA_TXD_DEBUG_PIN 17
-#define TIME_CONFIGURE_PROCESS 1 * 1000
+#define UART_LORA_TXD_PIN 1
+#define UART_LORA_RXD_PIN 3
+#define TIME_CONFIGURE_PROCESS (1 * 1000)
 #define TIME_LORA_RECV_PROCESS 10
 // LORA SENDING PROCESSING STATUS
 

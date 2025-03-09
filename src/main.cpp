@@ -1,9 +1,7 @@
-#include <Arduino.h>
 #include "globals.h"
 
 #define PUBLISH_INTERVAL 3000 // 4 giây
 
-unsigned long previousMillis = 0;
 
 void sendCorrectDataToGateway()
 {
@@ -28,38 +26,32 @@ void sendCorrectDataToGateway()
   Serial.println(buffer);
 }
 
+
+
 void setup()
 {
-  // for debug
+  // Initialize device layer
   pinMode(INBUILD_LED_PIN, OUTPUT);
+  Serial.begin(LORA_DEFAULT_BAUDRATE, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
+  Serial1.begin(UART_DEFAUT_BAUDRATE, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
+  
+  // Initialize Network layer
+  connect_init();
+  
+  // Initialize Device layer
+  device_init();
 
-  Serial.begin(115200);
   Serial.println("ESP32 WROOM-32E Test");
   initWatchdogTimer(RESET_WATCHDOG_TIME);
 
-  connect_init();
-  delay(delay_for_initialization);
-  device_init();
-  sendCorrectDataToGateway();
+  delay(delay_for_initialization);    // Use synchronization techniques instead of wait a fixed duration
+  sendCorrectDataToGateway();         // Just for testing
 
+  // Create Task
+  xTaskCreatePinnedToCore(taskLedBlink, "Task Blinky Led", 4096, NULL, 2, NULL, 1);
 }
 
 void loop()
 {
-  // unsigned long currentMillis = millis();
-
-  // if (currentMillis - previousMillis >= PUBLISH_INTERVAL)
-  // {
-  //   previousMillis = currentMillis;
-
-  //   int randomTemp = random(10, 100);
-
-  //   JsonDocument doc;
-  //   doc["illuminance"] = randomTemp;
-  //   doc["longitude"] = LONGITUDE;
-  //   doc["latitude"] = LATITUDE;
-  //   char buffer[256];
-  //   serializeJson(doc, buffer);
-  //   publishData(MQTT_SENDING_VALUE, buffer);
-  // }
+  // Do nothing
 }
