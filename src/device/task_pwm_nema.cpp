@@ -27,7 +27,7 @@ void pwm_set_duty(int dutyPercent)
     dutyPercentManually = map(dutyPercent, 0, 100, 0, pow(2, PWM_RESOLUTION) - 1);
 
     ledcWrite(PWM_CHANNEL, dutyPercentManually);
-    Serial.println("Success set PWM");
+    printlnData("Success set PWM");
 }
 void task_pwm_light_control_init(void *pvParameters)
 {

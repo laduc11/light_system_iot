@@ -66,11 +66,15 @@ void loraReceiveCallback(void *pvParameter)
     uint8_t buffer_write[3] = {0xc1, 0x00, 0x02};
     serial->write(buffer_write, 3);
 
-    Serial.printf("Sending data size: %ld\r\n", 3);
-    for (uint32_t i = 0; i < 3; ++i) {
-      Serial.printf("%02X ", buffer_write[i]);
+    if (nullptr != getDebugSerial()) {
+      getDebugSerial()->printf("Sending data size: %ld\r\n", 3);
     }
-    Serial.println();
+    for (uint32_t i = 0; i < 3; ++i) {
+      if (nullptr != getDebugSerial()) {
+        getDebugSerial()->printf("%02X ", buffer_write[i]);
+      }
+    }
+    printlnData();
     vTaskDelay(pdMS_TO_TICKS(1000));
 
     uint32_t size = 10;
@@ -81,11 +85,15 @@ void loraReceiveCallback(void *pvParameter)
     // Read data from UART
     stop = serial->readBytes(buffer_uart, size);
 
-    Serial.printf("Recieved data size: %ld\r\n", stop);
-    for (uint32_t i = 0; i < stop; ++i) {
-      Serial.printf("%02X ", buffer_write[i]);
+    if (nullptr != getDebugSerial()) {
+      getDebugSerial()->printf("Recieved data size: %ld\r\n", stop);
     }
-    Serial.println();
+    for (uint32_t i = 0; i < stop; ++i) {
+      if (nullptr != getDebugSerial()) {
+        getDebugSerial()->printf("%02X ", buffer_write[i]);
+      }
+    }
+    printlnData();
     serial->flush();
     vTaskDelay(pdMS_TO_TICKS(1000));
   }

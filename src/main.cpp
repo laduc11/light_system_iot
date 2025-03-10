@@ -22,18 +22,20 @@ void sendCorrectDataToGateway()
 
   publishData(MQTT_SENDING_VALUE, buffer);
 
-  Serial.println("Sending Data to Gateway:");
-  Serial.println(buffer);
+  printlnData("Sending Data to Gateway:");
+  printlnData(buffer);
 }
 
 
 
 void setup()
 {
+  // Intialize for debug
+  Serial.begin(UART_DEFAUT_BAUDRATE, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
+  initDebugSerial(&Serial);
+
   // Initialize device layer
   pinMode(INBUILD_LED_PIN, OUTPUT);
-  // LoRa use Serial -> Do not use Serial
-  Serial.begin(UART_DEFAUT_BAUDRATE, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   
   // Initialize Network layer
   connect_init();
@@ -42,7 +44,7 @@ void setup()
   device_init();
   loraInit();
 
-  Serial.println("ESP32 WROOM-32E Test");
+  printlnData("ESP32 WROOM-32E Test");
   initWatchdogTimer(RESET_WATCHDOG_TIME);
 
   delay(delay_for_initialization);    // Use synchronization techniques instead of wait a fixed duration

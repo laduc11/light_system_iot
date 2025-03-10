@@ -1,5 +1,5 @@
 // DEFINE DEBUG MODE
-// #define _DEBUG_MODE_
+#define _DEBUG_MODE_
 // #define _IS_DEBUG_MODE_ true
 #define _IS_DEBUG_MODE_ false
 

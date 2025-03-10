@@ -14,11 +14,11 @@ void taskInitRelayControl(void *pvParameter)
 void setRelayOn()
 {
     digitalWrite(RELAY_PIN, RELAY_ON);
-    printlnData(MQTT_FEED_NOTHING, "Turn relay on");
+    printlnData("Turn relay on");
 }
 
 void setRelayOff()
 {
     digitalWrite(RELAY_PIN, RELAY_OFF);
-    printlnData(MQTT_FEED_NOTHING, "Turn relay off");
+    printlnData("Turn relay off");
 }

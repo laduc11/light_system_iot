@@ -4,14 +4,14 @@
 void initWatchdogTimer(int timeoutSeconds)
 {
     esp_task_wdt_init(timeoutSeconds, true);
-    printlnData(MQTT_FEED_NOTHING, "Watchdog timer initialized.");
+    printlnData("Watchdog timer initialized.");
 }
 
 // Add a task to the watchdog timer
 void addTaskToWatchdog(TaskHandle_t taskHandle)
 {
     esp_task_wdt_add(taskHandle);
-    printlnData(MQTT_FEED_NOTHING, "Task added to watchdog timer.");
+    printlnData("Task added to watchdog timer.");
 }
 
 // Reset the watchdog timer
@@ -24,5 +24,5 @@ void resetWatchdog()
 void removeTaskFromWatchdog(TaskHandle_t taskHandle)
 {
     esp_task_wdt_delete(taskHandle);
-    printlnData(MQTT_FEED_NOTHING, "Task removed from watchdog timer.");
+    printlnData("Task removed from watchdog timer.");
 }

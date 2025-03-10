@@ -7,28 +7,28 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 void callback(char *topic, byte *payload, unsigned int length)
 {
-    Serial.print("[MQTT] Message arrived: ");
-    Serial.println(topic);
+    printData("[MQTT] Message arrived: ");
+    printlnData(topic);
     String message;
     for (unsigned int i = 0; i < length; i++)
     {
         message += (char)payload[i];
     }
 
-    Serial.print("[MQTT] Payload: ");
-    Serial.println(message);
+    printData("[MQTT] Payload: ");
+    printlnData(message);
 
     if (String(topic).startsWith("v1/gateway/rpc"))
     {
-        Serial.println("[MQTT] Data received from Gateway");
+        printlnData("[MQTT] Data received from Gateway");
         // Parse JSON
         JsonDocument doc;
         DeserializationError error = deserializeJson(doc, message);
 
         if (error)
         {
-            Serial.print("[ERROR] deserializeJson() failed: ");
-            Serial.println(error.f_str());
+            printData("[ERROR] deserializeJson() failed: ");
+            printlnData(error.f_str());
             return;
         }
         String device = doc["device"].as<String>();
@@ -38,16 +38,16 @@ void callback(char *topic, byte *payload, unsigned int length)
         String method = data["method"].as<String>();
         String params = data["params"].as<String>();
 
-        Serial.print("Method: ");
-        Serial.println(method);
-        Serial.print("Params: ");
-        Serial.println(params);
+        printData("Method: ");
+        printlnData(method);
+        printData("Params: ");
+        printlnData(params);
         if (device == "test_3" || device == "test_2" || device == "test_4")
         {
             if (method == "setState")
             {
-                Serial.print("Check for ");
-                Serial.println(device);
+                printData("Check for ");
+                printlnData(device);
                 // Code for sending message to control relay with LoRa to node
                 ////////////////
                 // To do code
@@ -64,13 +64,13 @@ void callback(char *topic, byte *payload, unsigned int length)
 
                 publishData(MQTT_SENDING_VALUE, buffer);
 
-                Serial.println("Sending Data to Gateway:");
-                Serial.println(buffer);
+                printlnData("Sending Data to Gateway:");
+                printlnData(buffer);
             }
             if (method == "setPWM")
             {
-                Serial.print("Check for ");
-                Serial.println(device);
+                printData("Check for ");
+                printlnData(device);
 
                 // Code for sending messag to adjust pwm value with LoRa to node
 
@@ -89,8 +89,8 @@ void callback(char *topic, byte *payload, unsigned int length)
 
                 publishData(MQTT_SENDING_VALUE, buffer);
 
-                Serial.println("Sending Data to Gateway:");
-                Serial.println(buffer);
+                printlnData("Sending Data to Gateway:");
+                printlnData(buffer);
             }
         }
     }
@@ -102,16 +102,16 @@ bool publishData(String feedName, String message)
 #ifdef ADAFRUIT
     String topic = user + "/feeds/" + feedName;
 #endif
-    printData(MQTT_FEED_NOTHING, "Publishing to topic: ");
-    printData(MQTT_FEED_NOTHING, feedName + " ");
-    printData(MQTT_FEED_NOTHING, "Status: ");
+    printData("Publishing to topic: ");
+    printData(feedName + " ");
+    printData("Status: ");
 
     if (client.publish(topic.c_str(), message.c_str(), 1))
     {
-        printlnData(MQTT_FEED_NOTHING, "Success!: " + message);
+        printlnData("Success!: " + message);
         return 1;
     }
-    printlnData(MQTT_FEED_NOTHING, "Failed!: " + message);
+    printlnData("Failed!: " + message);
     return 0;
 }
 
@@ -119,27 +119,27 @@ void reconnectMQTT()
 {
     while (!client.connected())
     {
-        printlnData(MQTT_FEED_NOTHING, "Connecting to MQTT...");
+        printlnData("Connecting to MQTT...");
 
         // String clientId = "ESP32Client" + String(random(0, 1000));
         String clientId = "pole_1";
         // if (client.connect(clientId.c_str(), user.c_str(), password.c_str()))
         if (client.connect(clientId.c_str(), TOKEN_GATEWAY, ""))
         {
-            printlnData(MQTT_FEED_NOTHING, "MQTT Connected");
+            printlnData("MQTT Connected");
 
 // Subscribe to topic put in here
 #ifdef _ESP_NUMBER_ONE_
             client.subscribe(MQTT_REQUEST_TOPIC);
-            Serial.println("Successfully subscribe topic");
+            printlnData("Successfully subscribe topic");
 #endif
 
-            printlnData(MQTT_FEED_NOTHING, "Start");
+            printlnData("Start");
         }
         else
         {
-            printData(MQTT_FEED_NOTHING, "MQTT connection failed, rc=");
-            printlnData(MQTT_FEED_NOTHING, String(client.state()));
+            printData("MQTT connection failed, rc=");
+            printlnData(String(client.state()));
         }
         vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
@@ -155,7 +155,7 @@ void taskMQTT(void *pvParameters)
     client.setServer(MQTT_SERVER, MQTT_PORT);
     client.setKeepAlive(30);
     client.setCallback(callback);
-    Serial.println("check point mqtt");
+    printlnData("check point mqtt");
 #ifdef _ESP_NUMBER_ONE_
     client.subscribe(MQTT_REQUEST_TOPIC);
 #endif

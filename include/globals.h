@@ -26,7 +26,7 @@
 
 // include json file
 // #include "../src/utils/on_off_json.h"
-#include "../src/utils/serial_print.h"
+#include "../src/utils/print_debug.h"
 // #include "../src/utils/light_control.h"
 
 // include hal file
