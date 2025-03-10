@@ -18,21 +18,75 @@
 #define TIME_CONFIGURE_PROCESS      1*1000
 #define TIME_LORA_RECV_PROCESS      10
 
-#define delay_lora_configure            (60*1000)
-#define delay_for_initialization        (10*1000)
+#define delay_lora_configure            (1000)
+#define delay_for_initialization        (1000)
 #define delay_rev_lora_process          (1)
+
 LoRa_E220_JP lora;
 struct LoRaConfigItem_t config;
+// bool loraSend(String message);
+RecvFrame_t data;
+String data_buffer;
+
+void LoRaRecvTask(void *pvParameters) {
+  vTaskDelay(pdMS_TO_TICKS(delay_for_initialization));
+  
+  while (1)
+  {
+    if (lora.RecieveFrame(&data) == 0) {
+      data_buffer = "";
+      for (uint16_t i = 0; i < data.recv_data_len; i++) {
+        data_buffer += (char)data.recv_data[i];
+        Serial.printf("%c", data.recv_data[i]);
+      }
+      Serial.println();
+      Serial.println("HEX dump:");
+      for (uint16_t i = 0; i < data.recv_data_len; i++)
+      {
+        Serial.printf("%02x ", data.recv_data[i]);
+      }
+      Serial.println();
+      Serial.printf("RSSI: %d dBm\n", data.rssi);
+      Serial.flush();
+      // lora_buffer.push_back(textBuffer);
+    }
+    vTaskDelay(pdMS_TO_TICKS(delay_rev_lora_process));
+  }
+}
+void LoRaSendTask(void *pvParameters) {
+  vTaskDelay(pdMS_TO_TICKS(delay_for_initialization));
+
+  while (1)
+  {
+    String msg = "Xin chao nguoi dep.";
+    // Call API from Iot server me dont know.
+    // Sample code from nha san xuat
+    // char msg[200] = {0};
+    // ReadDataFromConsole(msg, (sizeof(msg) / sizeof(msg[0])));
+    if (lora.SendFrame(config,(uint8_t*) msg.c_str(), msg.length()) == 0) {
+      Serial.println("Send message success.");
+      // notice to server fnction me dont know
+    }
+    else {
+      Serial.println("Send message failed.");
+      // notice to server function me dont know
+    }
+    Serial.flush();
+    vTaskDelay(pdMS_TO_TICKS(delay_lora_configure));
+  }
+  
+}
+
 int temp = 0;
-bool loraSend(String message);
-
-void taskLoraInit(void *pvParameters) {
-
+void taskLoraSetup(void *pvParameters) {
+  HardwareSerial* serial = (HardwareSerial*) pvParameters;
+  // Set Serial1 for connecting to loRa
+  lora.Init(serial, CONFIG_MODE_BAUD, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
   // Initialize Serial communication
   lora.SetDefaultConfigValue(config);
 
   // Set initial configuration values
-  config.own_address              = 0x0002;
+  config.own_address              = 0x0001;
   config.baud_rate                = BAUD_9600;
   config.air_data_rate            = BW125K_SF9;
   config.subpacket_size           = SUBPACKET_200_BYTE;
@@ -43,41 +97,27 @@ void taskLoraInit(void *pvParameters) {
   config.transmission_method_type = UART_P2P_MODE;
   config.lbt_flag                 = LBT_DISABLE;
   config.wor_cycle                = WOR_2000MS;
-  config.encryption_key           = 0x00;
-  config.target_address           = 0xFFFF;
+  config.encryption_key           = 0;
+  config.target_address           = 0xffff;
   config.target_channel           = 0x00;
 
   if (lora.InitLoRaSetting(config) != 0) {
     Serial.println("Lora init fail!");
     temp--;
-    // while (lora.InitLoRaSetting(config) != 0) {
-    //   vTaskDelay(delay_lora_configure);
-    // }
+    while (lora.InitLoRaSetting(config) != 0) {
+      vTaskDelay(pdMS_TO_TICKS(delay_lora_configure));
+    }
   }
   Serial.println("Lora init Success.");
   temp++;
   vTaskDelete(nullptr);
 }
-RecvFrame_t data;
-String textbuffer;
-void taskLoraRecv(void *pvParameters) {
-  vTaskDelay(delay_for_initialization);
 
-  while(1) {
-    if (lora.RecieveFrame(&data) == 0) {
-      textbuffer = "";
-      for (uint16_t i = 0; i < data.recv_data_len; i++) {
-        textbuffer += (char)data.recv_data[i];
-      }
-      // lora_buffer.push_back(textBuffer);
-    }
-    vTaskDelay(delay_rev_lora_process);
-  }
-}
+/* 
 void taskLoraSend(void *pvParameters) {
   vTaskDelay(delay_for_initialization);
 
-  String msg = "Xin chao nguoi dep.";
+ String msg = "Xin chao nguoi dep !";
   while (1)
   {
     loraSend(msg);
@@ -95,18 +135,22 @@ bool loraSend(String message) {
     Serial.println("Send fail.");
     return false;
   }
-  
 }
-
+*/
 void loraInit(void *pvParameters)
 {
-  xTaskCreate(taskLoraInit, "lora Init", 4096, NULL, 1, NULL);
+  xTaskCreate(taskLoraSetup, "Lora Set up", 4096, NULL, 1, NULL);
 }
 
 #define MAX_BUFFER  10
+#define BUFFER_WRITE_UART 5
+// void uart_configLora(void* pvParam, const uint8_t* data) {
+//   HardwareSerial *serial = (HardwareSerial *)pvParam;
+  
+// }
 
-void uart_CB(void* pvparam) {
-  HardwareSerial *serial = (HardwareSerial *)pvparam;
+void uart_CB(void* pvParam) {
+  HardwareSerial *serial = (HardwareSerial *)pvParam;
   uint8_t buffer_uart[MAX_BUFFER];
   uint32_t stop;
   while (1) {
@@ -142,13 +186,17 @@ void uart_CB(void* pvparam) {
 
 void binkLED(void *pvParam)
 {
-  digitalWrite(LED, HIGH);
-  Serial.println("LED ON, S0");
-
-  vTaskDelay(pdMS_TO_TICKS(2000));
-  digitalWrite(LED, LOW);
-  Serial.println("LED OFF, S0");
-  vTaskDelay(pdMS_TO_TICKS(2000));
+  while (1)
+  {
+    digitalWrite(LED, HIGH);
+    Serial.println("LED ON, S0");
+  
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    digitalWrite(LED, LOW);
+    Serial.println("LED OFF, S0");
+    vTaskDelay(pdMS_TO_TICKS(2000));
+  }
+  
 }
 
 void setup() {
@@ -156,10 +204,10 @@ void setup() {
   Serial.begin(9600, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   Serial1.begin(9600, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
   pinMode(LED, OUTPUT);
+  xTaskCreate(taskLoraSetup, "UART callback", 4096, &Serial1, 1, nullptr);
+  xTaskCreate(binkLED, "Blinky LED", 4096, nullptr, 2, nullptr);
   
-  xTaskCreate(uart_CB, "UART callback", 4096, &Serial1, 1, nullptr);
-  // xTaskCreate(binkLED, "Blinky LED", 4096, nullptr, 1, nullptr);
-  // vTaskStartScheduler();
+  vTaskStartScheduler();
   // xTaskCreatePinnedToCore(uart_CB, "UART callback", 4096, nullptr, 3, nullptr, 0);
   // xTaskCreate(uart_CB, "UART callback", 4096, nullptr, 3, 0);
   // lora.Init(&Serial1, 9600, SERIAL_8N1, UART_LORA_TXD_PIN, UART_LORA_RXD_PIN);
