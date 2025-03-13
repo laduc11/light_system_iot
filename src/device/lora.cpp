@@ -30,24 +30,78 @@
   0x00     // target_channel 0
 */
 
-LoRa_E220_JP lora;
-struct LoRaConfigItem_t config;
+/* Private attribute for module LoRa */
+LoRa_E220 *lora_ = nullptr;
+Configuration config_;
 
+/* Private function */
 /**
- * @brief 
+ * @brief Print configuration for debugging
+ * 
+ * @param config 
+ */
+void printConfiguration(Configuration *config)
+{
+	getDebugSerial()->println("----------------------------------------");
+
+	getDebugSerial()->print(F("HEAD : "));  getDebugSerial()->print(config->COMMAND, HEX);getDebugSerial()->print(" ");getDebugSerial()->print(config->STARTING_ADDRESS, HEX);getDebugSerial()->print(" ");getDebugSerial()->println(config->LENGHT, HEX);
+	getDebugSerial()->println(F(" "));
+	getDebugSerial()->print(F("AddH : "));  getDebugSerial()->println(config->ADDH, HEX);
+	getDebugSerial()->print(F("AddL : "));  getDebugSerial()->println(config->ADDL, HEX);
+	getDebugSerial()->println(F(" "));
+	getDebugSerial()->print(F("Chan : "));  getDebugSerial()->print(config->CHAN, DEC); getDebugSerial()->print(" -> "); getDebugSerial()->println(config->getChannelDescription());
+	getDebugSerial()->println(F(" "));
+	getDebugSerial()->print(F("SpeedParityBit     : "));  getDebugSerial()->print(config->SPED.uartParity, BIN);getDebugSerial()->print(" -> "); getDebugSerial()->println(config->SPED.getUARTParityDescription());
+	getDebugSerial()->print(F("SpeedUARTDatte     : "));  getDebugSerial()->print(config->SPED.uartBaudRate, BIN);getDebugSerial()->print(" -> "); getDebugSerial()->println(config->SPED.getUARTBaudRateDescription());
+	getDebugSerial()->print(F("SpeedAirDataRate   : "));  getDebugSerial()->print(config->SPED.airDataRate, BIN);getDebugSerial()->print(" -> "); getDebugSerial()->println(config->SPED.getAirDataRateDescription());
+	getDebugSerial()->println(F(" "));
+	getDebugSerial()->print(F("OptionSubPacketSett: "));  getDebugSerial()->print(config->OPTION.subPacketSetting, BIN);getDebugSerial()->print(" -> "); getDebugSerial()->println(config->OPTION.getSubPacketSetting());
+	getDebugSerial()->print(F("OptionTranPower    : "));  getDebugSerial()->print(config->OPTION.transmissionPower, BIN);getDebugSerial()->print(" -> "); getDebugSerial()->println(config->OPTION.getTransmissionPowerDescription());
+	getDebugSerial()->print(F("OptionRSSIAmbientNo: "));  getDebugSerial()->print(config->OPTION.RSSIAmbientNoise, BIN);getDebugSerial()->print(" -> "); getDebugSerial()->println(config->OPTION.getRSSIAmbientNoiseEnable());
+	getDebugSerial()->println(F(" "));
+	getDebugSerial()->print(F("TransModeWORPeriod : "));  getDebugSerial()->print(config->TRANSMISSION_MODE.WORPeriod, BIN);getDebugSerial()->print(" -> "); getDebugSerial()->println(config->TRANSMISSION_MODE.getWORPeriodByParamsDescription());
+	getDebugSerial()->print(F("TransModeEnableLBT : "));  getDebugSerial()->print(config->TRANSMISSION_MODE.enableLBT, BIN);getDebugSerial()->print(" -> "); getDebugSerial()->println(config->TRANSMISSION_MODE.getLBTEnableByteDescription());
+	getDebugSerial()->print(F("TransModeEnableRSSI: "));  getDebugSerial()->print(config->TRANSMISSION_MODE.enableRSSI, BIN);getDebugSerial()->print(" -> "); getDebugSerial()->println(config->TRANSMISSION_MODE.getRSSIEnableByteDescription());
+	getDebugSerial()->print(F("TransModeFixedTrans: "));  getDebugSerial()->print(config->TRANSMISSION_MODE.fixedTransmission, BIN);getDebugSerial()->print(" -> "); getDebugSerial()->println(config->TRANSMISSION_MODE.getFixedTransmissionDescription());
+
+
+	getDebugSerial()->println("----------------------------------------");
+}
+
+/*<===============================================================================================================================================================>*/
+/**
+ * @brief Initialize instance LoRa and binding with Serial2
  * 
  */
 void loraInit()
 {
-  lora.Init(&Serial2, LORA_DEFAULT_BAUDRATE, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
+  lora_ = new LoRa_E220(UART_LORA_TXD_PIN, UART_LORA_RXD_PIN, &Serial2, -1, -1, -1, UART_BPS_RATE_9600, SERIAL_8N1);
+  getLoraDefaultConfig(&config_);
+}
 
-  // Set config
-  lora.SetDefaultConfigValue(config);
-  config.own_address = 0x1234;
-  config.own_channel = 0x01;
-#ifdef  LORA_CONFIG_MODE
-  lora.InitLoRaSetting(config);
-#endif  // LORA_CONFIG_MODE
+/**
+ * @brief Release all memory
+ * 
+ */
+void loraDelete()
+{
+  delete lora_;
+}
+
+/**
+ * @brief Config LoRa task
+ * 
+ * @param pvParameter 
+ */
+void configLora(void *pvParameter)
+{
+  if (nullptr != lora_) {
+    lora_->setConfiguration(config_, WRITE_CFG_PWR_DWN_SAVE);
+
+    Configuration config;
+    ResponseStructContainer rc = lora_->getConfiguration();
+    printConfiguration((Configuration *)rc.data);
+  }
 }
 
 /**

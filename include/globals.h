@@ -6,14 +6,14 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
-#include <M5_LoRa_E220_JP.h>
 #include <Preferences.h>
 #include <esp_task_wdt.h>
 #include <vector>
 #include <esp32-hal-ledc.h>
+#include <LoRa_E220.h>
 
 // include common files
-#include "../src/common/defines.h"
+#include "common/defines.h"
 
 // include connect
 #include "../src/connect/connect_init.h"
