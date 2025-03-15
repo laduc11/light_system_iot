@@ -30,9 +30,13 @@ String data_buffer;
 
 void LoRaRecvTask(void *pvParameters) {
   vTaskDelay(pdMS_TO_TICKS(delay_for_initialization));
-  
+  Serial.print("xxx");
   while (1)
   {
+    Serial.println("before");
+    lora.RecieveFrame(&data);
+    Serial.println("after");
+    
     if (lora.RecieveFrame(&data) == 0) {
       data_buffer = "";
       for (uint16_t i = 0; i < data.recv_data_len; i++) {
@@ -81,12 +85,11 @@ int temp = 0;
 void taskLoraSetup(void *pvParameters) {
   HardwareSerial* serial = (HardwareSerial*) pvParameters;
   // Set Serial1 for connecting to loRa
-  lora.Init(serial, CONFIG_MODE_BAUD, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
   // Initialize Serial communication
   lora.SetDefaultConfigValue(config);
 
   // Set initial configuration values
-  config.own_address              = 0x0001;
+  config.own_address              = 0x0002;
   config.baud_rate                = BAUD_9600;
   config.air_data_rate            = BW125K_SF9;
   config.subpacket_size           = SUBPACKET_200_BYTE;
@@ -102,15 +105,13 @@ void taskLoraSetup(void *pvParameters) {
   config.target_channel           = 0x00;
 
   if (lora.InitLoRaSetting(config) != 0) {
-    Serial.println("Lora init fail!");
-    temp--;
     while (lora.InitLoRaSetting(config) != 0) {
+      Serial.println("Lora init fail!");
       vTaskDelay(pdMS_TO_TICKS(delay_lora_configure));
     }
   }
   Serial.println("Lora init Success.");
-  temp++;
-  vTaskDelete(nullptr);
+  // vTaskDelete(nullptr);
 }
 
 /* 
@@ -204,10 +205,14 @@ void setup() {
   Serial.begin(9600, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   Serial1.begin(9600, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
   pinMode(LED, OUTPUT);
-  xTaskCreate(taskLoraSetup, "UART callback", 4096, &Serial1, 1, nullptr);
-  xTaskCreate(binkLED, "Blinky LED", 4096, nullptr, 2, nullptr);
+  lora.Init(&Serial1, CONFIG_MODE_BAUD, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
+
+  taskLoraSetup(&Serial1);
+  // xTaskCreate(LoRaSendTask, "UART Sender", 4096, nullptr, 1, nullptr);
+  xTaskCreate(LoRaRecvTask, "UART receiver", 4096, nullptr, 0, nullptr);
+  xTaskCreate(binkLED, "Blinky LED", 1024, nullptr, 2, nullptr);
   
-  vTaskStartScheduler();
+  // vTaskStartScheduler();
   // xTaskCreatePinnedToCore(uart_CB, "UART callback", 4096, nullptr, 3, nullptr, 0);
   // xTaskCreate(uart_CB, "UART callback", 4096, nullptr, 3, 0);
   // lora.Init(&Serial1, 9600, SERIAL_8N1, UART_LORA_TXD_PIN, UART_LORA_RXD_PIN);
