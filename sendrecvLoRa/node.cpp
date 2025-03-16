@@ -5,11 +5,6 @@
 #define LED 0x02
 
 // DEFINE LORA
-#define LORA_MAX_BUFFER_SIZE          32
-#define LORA_MAX_WAITING_LIST         64  // This is the maximum element in waiting ack list
-#define LORA_TIMER_FACTOR_MSG_RESEND  5
-#define LORA_MAX_TIMES_RESEND         3
-
 #define CONFIG_MODE_BAUD              9600
 
 #define UART_LORA_RXD_PIN           3 // RX tren ESP 32

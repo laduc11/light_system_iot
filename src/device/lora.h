@@ -3,8 +3,16 @@
 
 #include "globals.h"
 
-void loraInit();
-bool loraSend(String message);
-void loraReceiveCallback(void *pvParameter);
+enum Role
+{
+    GATEWAY,
+    NODE
+};
+
+void initLora();
+void deinitLora();
+void setConfiguration(Role role, uint16_t address);
+LoRa_E220_JP* getLoraIns();
+LoRaConfigItem_t* getConfigLora();
 
 #endif  // LORA_H

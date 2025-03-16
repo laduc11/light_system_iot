@@ -5,6 +5,37 @@ String password = MQTT_PASSWORD;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
+
+/*<=================================Private Function=================================>*/
+void controlRelay(String device, String state)
+{
+    if (!getLoraIns() || !getConfigLora()) 
+    {
+        Serial.println("LoRa is not initialized or config fail");
+        return;
+    }
+    // Serialize to message (String)
+    // Convert device to LoRa address
+    // Example: test_2 -> 0x0002
+    String msg = "";
+    msg = device + String(": ") + state;
+
+    // Send message via LoRa
+    LoRa_E220_JP *lora_ptr = getLoraIns();
+
+    if (lora_ptr->SendFrame(*getConfigLora(), (uint8_t*) msg.c_str(), msg.length()) == 0) {
+        
+        Serial.println("Send message success.");
+        Serial.println(getConfigLora()->target_address);
+        Serial.println(getConfigLora()->own_address);
+        // notice to server fnction me dont know
+    }
+    else {
+        Serial.println("Send message failed.");
+    }
+    Serial.flush();
+}
+
 void callback(char *topic, byte *payload, unsigned int length)
 {
     printData("[MQTT] Message arrived: ");
@@ -51,7 +82,7 @@ void callback(char *topic, byte *payload, unsigned int length)
                 // Code for sending message to control relay with LoRa to node
                 ////////////////
                 // To do code
-
+                controlRelay(device, params);
                 //////////////
                 JsonDocument jsonDoc;
 
@@ -96,25 +127,6 @@ void callback(char *topic, byte *payload, unsigned int length)
     }
 }
 
-bool publishData(String feedName, String message)
-{
-    String topic = feedName;
-#ifdef ADAFRUIT
-    String topic = user + "/feeds/" + feedName;
-#endif
-    printData("Publishing to topic: ");
-    printData(feedName + " ");
-    printData("Status: ");
-
-    if (client.publish(topic.c_str(), message.c_str(), 1))
-    {
-        printlnData("Success!: " + message);
-        return 1;
-    }
-    printlnData("Failed!: " + message);
-    return 0;
-}
-
 void reconnectMQTT()
 {
     while (!client.connected())
@@ -145,11 +157,42 @@ void reconnectMQTT()
     }
 }
 
+void mqtt_init()
+{
+    xTaskCreate(taskMQTT, "TaskMQTT", 4096, NULL, 1, NULL);
+}
+
+/*<=================================Public Function=================================>*/
+bool publishData(String feedName, String message)
+{
+    String topic = feedName;
+#ifdef ADAFRUIT
+    String topic = user + "/feeds/" + feedName;
+#endif
+    printData("Publishing to topic: ");
+    printData(feedName + " ");
+    printData("Status: ");
+
+    if (client.publish(topic.c_str(), message.c_str(), 1))
+    {
+        printlnData("Success!: " + message);
+        return 1;
+    }
+    printlnData("Failed!: " + message);
+    return 0;
+}
+
 void taskMQTT(void *pvParameters)
 {
+    // Wait connecting Wifi
     while (WiFi.status() != WL_CONNECTED)
     {
         vTaskDelay(delay_connect / portTICK_PERIOD_MS);
+    }
+    // Wait setting up LoRa completely 
+    while (getLoraIns() == nullptr)
+    {
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 
     client.setServer(MQTT_SERVER, MQTT_PORT);
@@ -172,7 +215,3 @@ void taskMQTT(void *pvParameters)
     }
 }
 
-void mqtt_init()
-{
-    xTaskCreate(taskMQTT, "TaskMQTT", 4096, NULL, 1, NULL);
-}

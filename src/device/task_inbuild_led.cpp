@@ -1,23 +1,18 @@
 #include "task_inbuild_led.h"
 
-int ledState = LED_OFF;
-
 void taskLedBlink(void *pvParameters)
 {
     pinMode(INBUILD_LED_PIN, OUTPUT);
 
-    while (true)
+    while (1)
     {
-        if (ledState == LED_OFF)
-        {
-            digitalWrite(INBUILD_LED_PIN, LED_ON);
-            ledState = LED_ON;
-        }
-        else
-        {
-            digitalWrite(INBUILD_LED_PIN, LED_OFF);
-            ledState = LED_OFF;
-        }
-        vTaskDelay(delay_led_blink);
+      digitalWrite(INBUILD_LED_PIN, HIGH);
+      Serial.println("LED ON, S0");
+    
+      vTaskDelay(pdMS_TO_TICKS(2000));
+      digitalWrite(INBUILD_LED_PIN, LOW);
+      Serial.println("LED OFF, S0");
+      vTaskDelay(pdMS_TO_TICKS(2000));
     }
+    vTaskDelete(nullptr);
 }

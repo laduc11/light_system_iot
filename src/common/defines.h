@@ -107,12 +107,12 @@
 #define PWM_PIN 5
 
 // DEFINE DELAY
-#define delay_for_initialization (10 * 1000)
+#define delay_for_initialization (3000)
 #define delay_wifi (3600 * 1000)
 #define delay_connect (100)
 #define delay_mqtt (100)
 #define delay_send_message (60 * 1000)
-#define delay_lora_configure (60 * 1000)
+#define delay_lora_configure (2000)
 #define delay_led_blink (3000)
 #define delay_rev_lora_process (1)
 #define delay_send_lora_process (10 * 1000)
