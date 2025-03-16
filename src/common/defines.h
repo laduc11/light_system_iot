@@ -97,8 +97,8 @@
 #define MQTT_FEED_TEST_DIMMING "BK_SmartPole/Feeds/V1"
 
 // DEFINE WIFI AP
-#define WIFI_SSID "Fatcat"
-#define WIFI_PASS "lnss2136"
+#define WIFI_SSID "DESKTOP-G0ROT6R-8883"
+#define WIFI_PASS "665,Zc67"
 
 // DEFINE DIMMING PWM
 #define PWM_CHANNEL 1

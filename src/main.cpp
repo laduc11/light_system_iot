@@ -42,7 +42,6 @@ void setup()
   
   // Initialize Device layer
   device_init();
-  loraInit();
 
   printlnData("ESP32 WROOM-32E Test");
   initWatchdogTimer(RESET_WATCHDOG_TIME);
@@ -52,7 +51,6 @@ void setup()
 
   // Create Task
   xTaskCreatePinnedToCore(taskLedBlink, "Task Blinky Led", 4096, NULL, 2, NULL, 1);
-  xTaskCreatePinnedToCore(loraReceiveCallback, "Task LoRa Callback", 4096, &Serial2, 2, NULL, 1);
 }
 
 void loop()
