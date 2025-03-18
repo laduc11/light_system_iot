@@ -16,7 +16,7 @@ void controlRelay(String device, String state)
     }
     String relay_template = "Relay: ";
     String msg = "";
-    msg = device + " {" + relay_template + state + " }";
+    msg = device + " { " + relay_template + state + " }";
 
     // Send message via LoRa
     LoRa_E220_JP *lora_ptr = getLoraIns();
