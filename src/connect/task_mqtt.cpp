@@ -9,32 +9,57 @@ PubSubClient client(espClient);
 /*<=================================Private Function=================================>*/
 void controlRelay(String device, String state)
 {
-    if (!getLoraIns() || !getConfigLora()) 
+    if (!getLoraIns() || !getConfigLora())
     {
         Serial.println("LoRa is not initialized or config fail");
         return;
     }
-    // Serialize to message (String)
-    // Convert device to LoRa address
-    // Example: test_2 -> 0x0002
     String msg = "";
     msg = device + String(": ") + state;
 
     // Send message via LoRa
     LoRa_E220_JP *lora_ptr = getLoraIns();
 
-    if (lora_ptr->SendFrame(*getConfigLora(), (uint8_t*) msg.c_str(), msg.length()) == 0) {
-        
-        Serial.println("Send message success.");
-        Serial.println(getConfigLora()->target_address);
-        Serial.println(getConfigLora()->own_address);
-        // notice to server fnction me dont know
+    if (lora_ptr->SendFrame(*getConfigLora(), (uint8_t *)msg.c_str(), msg.length()) == 0)
+    {
+
+        Serial.print("Send message control relay to device: ");
+        Serial.print(device);
+        Serial.println(" success");
     }
-    else {
+    else
+    {
         Serial.println("Send message failed.");
     }
     Serial.flush();
 }
+
+void controlPwm(String device, String value)
+{
+    if (!getLoraIns() || !getConfigLora())
+    {
+        Serial.println("LoRa is not initialized or config fail");
+        return;
+    }
+    String msg = "";
+    msg = device + String(": ") + value;
+
+    // Send message via LoRa
+    LoRa_E220_JP *lora_ptr = getLoraIns();
+    if (lora_ptr->SendFrame(*getConfigLora(), (uint8_t *)msg.c_str(), msg.length()) == 0)
+    {
+
+        Serial.print("Send message control Pwm to device: ");
+        Serial.print(device);
+        Serial.println(" success");
+    }
+    else
+    {
+        Serial.println("Send message failed.");
+    }
+    Serial.flush();
+}
+/*<=================================Private Function=================================>*/
 
 void callback(char *topic, byte *payload, unsigned int length)
 {
@@ -62,10 +87,10 @@ void callback(char *topic, byte *payload, unsigned int length)
             printlnData(error.f_str());
             return;
         }
-        String device = doc["device"].as<String>();
-        // Lấy object "data"
-        JsonObject data = doc["data"].as<JsonObject>();
 
+        // Get value from package receivce from server
+        String device = doc["device"].as<String>();
+        JsonObject data = doc["data"].as<JsonObject>();
         String method = data["method"].as<String>();
         String params = data["params"].as<String>();
 
@@ -80,10 +105,9 @@ void callback(char *topic, byte *payload, unsigned int length)
                 printData("Check for ");
                 printlnData(device);
                 // Code for sending message to control relay with LoRa to node
-                ////////////////
-                // To do code
                 controlRelay(device, params);
-                //////////////
+
+                // Publish message to server to synchronous state of device
                 JsonDocument jsonDoc;
 
                 JsonArray deviceArray = jsonDoc[device].to<JsonArray>();
@@ -95,7 +119,7 @@ void callback(char *topic, byte *payload, unsigned int length)
 
                 publishData(MQTT_SENDING_VALUE, buffer);
 
-                printlnData("Sending Data to Gateway:");
+                printlnData("Updating Relay state for device");
                 printlnData(buffer);
             }
             if (method == "setPWM")
@@ -104,11 +128,9 @@ void callback(char *topic, byte *payload, unsigned int length)
                 printlnData(device);
 
                 // Code for sending messag to adjust pwm value with LoRa to node
+                controlPwm(device, params);
+                // Publish message to server to synchronous state of device
 
-                ///////////////
-                // To do code
-
-                //////////////
                 JsonDocument jsonDoc;
 
                 JsonArray deviceArray = jsonDoc[device].to<JsonArray>();
@@ -120,7 +142,7 @@ void callback(char *topic, byte *payload, unsigned int length)
 
                 publishData(MQTT_SENDING_VALUE, buffer);
 
-                printlnData("Sending Data to Gateway:");
+                printlnData("Updating PWM value for device");
                 printlnData(buffer);
             }
         }
@@ -189,7 +211,7 @@ void taskMQTT(void *pvParameters)
     {
         vTaskDelay(delay_connect / portTICK_PERIOD_MS);
     }
-    // Wait setting up LoRa completely 
+    // Wait setting up LoRa completely
     while (getLoraIns() == nullptr)
     {
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -214,4 +236,3 @@ void taskMQTT(void *pvParameters)
         vTaskDelay(delay_mqtt / portTICK_PERIOD_MS);
     }
 }
-
