@@ -7,16 +7,16 @@
 // DEFINE LORA
 #define CONFIG_MODE_BAUD              9600
 
-#define UART_LORA_RXD_PIN           3 // RX tren ESP 32
-#define UART_LORA_TXD_PIN           1 // TX on ESP 32
-#define UART_RXD_DEBUG_PIN          16 
-#define UART_TXD_DEBUG_PIN          17 
-#define TIME_CONFIGURE_PROCESS      1*1000
-#define TIME_LORA_RECV_PROCESS      10
+#define UART_LORA_RXD_PIN 3 // RX tren ESP 32
+#define UART_LORA_TXD_PIN 1 // TX on ESP 32
+#define UART_RXD_DEBUG_PIN 16
+#define UART_TXD_DEBUG_PIN 17
+#define TIME_CONFIGURE_PROCESS 1 * 1000
+#define TIME_LORA_RECV_PROCESS 10
 
-#define delay_lora_configure            (1000)
-#define delay_for_initialization        (1000)
-#define delay_rev_lora_process          (1)
+#define delay_lora_configure (1000)
+#define delay_for_initialization (1000)
+#define delay_rev_lora_process (1)
 
 LoRa_E220_JP lora;
 struct LoRaConfigItem_t config;
@@ -26,23 +26,30 @@ String data_buffer;
 
 void toggleLED()
 {
-  if (digitalRead(LED) == HIGH) {
+  if (digitalRead(LED) == HIGH)
+  {
     digitalWrite(LED, LOW);
     Serial.println("LED OFF, S0");
-  } else {
+  }
+  else
+  {
     digitalWrite(LED, HIGH);
     Serial.println("LED ON, S0");
   }
 }
 
-void LoRaRecvTask(void *pvParameters) {
+void LoRaRecvTask(void *pvParameters)
+{
+  Serial.println("check point");
   while (1)
   {
-    if (lora.RecieveFrame(&data) == 0) {
+    if (lora.RecieveFrame(&data) == 0)
+    {
       Serial.print("Data size: ");
       Serial.println(data.recv_data_len);
       data_buffer = "";
-      for (uint16_t i = 0; i < data.recv_data_len; i++) {
+      for (uint16_t i = 0; i < data.recv_data_len; i++)
+      {
         data_buffer += (char)data.recv_data[i];
         Serial.printf("%c", data.recv_data[i]);
       }
@@ -56,12 +63,23 @@ void LoRaRecvTask(void *pvParameters) {
       Serial.printf("RSSI: %d dBm\n", data.rssi);
       Serial.flush();
 
-      if (data_buffer == String(TEST_MESSAGE)) {
-        toggleLED();
-      } else {
+      if (data_buffer == String("test_4: high"))
+      {
+        digitalWrite(LED, HIGH);
+        Serial.println("LED ON, S0");
+      }
+      else if (data_buffer == String("test_4: low"))
+      {
+        digitalWrite(LED, LOW);
+        Serial.println("LED OFF, S0");
+      }
+      else
+      {
         Serial.println("Received string not match");
       }
-    } else {
+    }
+    else
+    {
       Serial.println("Receive data too large");
     }
     vTaskDelay(pdMS_TO_TICKS(delay_rev_lora_process));
@@ -69,7 +87,8 @@ void LoRaRecvTask(void *pvParameters) {
   vTaskDelete(nullptr);
 }
 
-void LoRaSendTask(void *pvParameters) {
+void LoRaSendTask(void *pvParameters)
+{
   vTaskDelay(pdMS_TO_TICKS(delay_for_initialization));
 
   while (1)
@@ -79,45 +98,49 @@ void LoRaSendTask(void *pvParameters) {
     // Sample code from nha san xuat
     // char msg[200] = {0};
     // ReadDataFromConsole(msg, (sizeof(msg) / sizeof(msg[0])));
-    if (lora.SendFrame(config,(uint8_t*) msg.c_str(), msg.length()) == 0) {
+    if (lora.SendFrame(config, (uint8_t *)msg.c_str(), msg.length()) == 0)
+    {
       Serial.println("Send message success.");
       // notice to server fnction me dont know
     }
-    else {
+    else
+    {
       Serial.println("Send message failed.");
       // notice to server function me dont know
     }
     Serial.flush();
     vTaskDelay(pdMS_TO_TICKS(delay_lora_configure));
   }
-  
 }
 
 int temp = 0;
-void loraSetup(void *pvParameters) {
-  HardwareSerial* serial = (HardwareSerial*) pvParameters;
+void loraSetup(void *pvParameters)
+{
+  HardwareSerial *serial = (HardwareSerial *)pvParameters;
   // Set Serial1 for connecting to loRa
   // Initialize Serial communication
   lora.SetDefaultConfigValue(config);
 
   // Set initial configuration values
-  config.own_address              = 0x0002;
-  config.baud_rate                = BAUD_9600;
-  config.air_data_rate            = BW125K_SF9;
-  config.subpacket_size           = SUBPACKET_200_BYTE;
-  config.rssi_ambient_noise_flag  = RSSI_AMBIENT_NOISE_ENABLE;
-  config.transmitting_power       = TX_POWER_13dBm;
-  config.own_channel              = 0x2A;
-  config.rssi_byte_flag           = RSSI_BYTE_ENABLE;
+  config.own_address = 0x0002;
+  config.baud_rate = BAUD_9600;
+  config.air_data_rate = BW125K_SF9;
+  config.subpacket_size = SUBPACKET_200_BYTE;
+  config.rssi_ambient_noise_flag = RSSI_AMBIENT_NOISE_ENABLE;
+  config.transmitting_power = TX_POWER_13dBm;
+  config.own_channel = 0x00;
+  config.rssi_byte_flag = RSSI_BYTE_ENABLE;
   config.transmission_method_type = UART_P2P_MODE;
-  config.lbt_flag                 = LBT_DISABLE;
-  config.wor_cycle                = WOR_2000MS;
-  config.encryption_key           = 0;
-  config.target_address           = 0xffff;
-  config.target_channel           = 0x2A;
+  config.lbt_flag = LBT_DISABLE;
+  config.wor_cycle = WOR_2000MS;
+  config.encryption_key = 0;
+  config.target_address = 0xffff;
+  config.target_channel = 0x00;
 
-  if (lora.InitLoRaSetting(config) != 0) {
-    while (lora.InitLoRaSetting(config) != 0) {
+  if (lora.InitLoRaSetting(config) != 0)
+  {
+    while (lora.InitLoRaSetting(config) != 0)
+    {
       Serial.println("Lora init fail!");
       vTaskDelay(pdMS_TO_TICKS(delay_lora_configure));
     }
@@ -135,16 +158,16 @@ void binkLED(void *pvParam)
   {
     digitalWrite(LED, HIGH);
     Serial.println("LED ON, S0");
-  
+
     vTaskDelay(pdMS_TO_TICKS(2000));
     digitalWrite(LED, LOW);
     Serial.println("LED OFF, S0");
     vTaskDelay(pdMS_TO_TICKS(2000));
   }
-  
 }
 
-void setup() {
+void setup()
+{
 
   Serial.begin(9600, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   Serial1.begin(9600, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
@@ -157,6 +180,7 @@ void setup() {
   xTaskCreate(LoRaRecvTask, "UART receiver", 4096, nullptr, 0, nullptr);
 }
 
-void loop() {
+void loop()
+{
   // put your main code here, to run repeatedly:
 }
