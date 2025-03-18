@@ -1,42 +1,10 @@
-#include <Arduino.h>
-#include <M5_LoRa_E220_JP.h>
-#include <common.h>
-
-#define LED 0x02
-
-// DEFINE LORA
-#define CONFIG_MODE_BAUD              9600
-
-#define UART_LORA_RXD_PIN 3 // RX tren ESP 32
-#define UART_LORA_TXD_PIN 1 // TX on ESP 32
-#define UART_RXD_DEBUG_PIN 16
-#define UART_TXD_DEBUG_PIN 17
-#define TIME_CONFIGURE_PROCESS 1 * 1000
-#define TIME_LORA_RECV_PROCESS 10
-
-#define delay_lora_configure (1000)
-#define delay_for_initialization (1000)
-#define delay_rev_lora_process (1)
+#include "globals.h"
 
 LoRa_E220_JP lora;
 struct LoRaConfigItem_t config;
 // bool loraSend(String message);
 RecvFrame_t data;
 String data_buffer;
-
-void toggleLED()
-{
-  if (digitalRead(LED) == HIGH)
-  {
-    digitalWrite(LED, LOW);
-    Serial.println("LED OFF, S0");
-  }
-  else
-  {
-    digitalWrite(LED, HIGH);
-    Serial.println("LED ON, S0");
-  }
-}
 
 void LoRaRecvTask(void *pvParameters)
 {
@@ -65,12 +33,12 @@ void LoRaRecvTask(void *pvParameters)
 
       if (data_buffer == String("test_4: high"))
       {
-        digitalWrite(LED, HIGH);
+        digitalWrite(INBUILD_LED_PIN, HIGH);
         Serial.println("LED ON, S0");
       }
       else if (data_buffer == String("test_4: low"))
       {
-        digitalWrite(LED, LOW);
+        digitalWrite(INBUILD_LED_PIN, LOW);
         Serial.println("LED OFF, S0");
       }
       else
@@ -94,10 +62,6 @@ void LoRaSendTask(void *pvParameters)
   while (1)
   {
     String msg = "Xin chao nguoi dep.";
-    // Call API from Iot server me dont know.
-    // Sample code from nha san xuat
-    // char msg[200] = {0};
-    // ReadDataFromConsole(msg, (sizeof(msg) / sizeof(msg[0])));
     if (lora.SendFrame(config, (uint8_t *)msg.c_str(), msg.length()) == 0)
     {
       Serial.println("Send message success.");
@@ -152,27 +116,13 @@ void loraInit(void *pvParameters)
 {
 }
 
-void binkLED(void *pvParam)
-{
-  while (1)
-  {
-    digitalWrite(LED, HIGH);
-    Serial.println("LED ON, S0");
-
-    vTaskDelay(pdMS_TO_TICKS(2000));
-    digitalWrite(LED, LOW);
-    Serial.println("LED OFF, S0");
-    vTaskDelay(pdMS_TO_TICKS(2000));
-  }
-}
-
 void setup()
 {
 
   Serial.begin(9600, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   Serial1.begin(9600, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
-  pinMode(LED, OUTPUT);
-  lora.Init(&Serial1, CONFIG_MODE_BAUD, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
+  pinMode(INBUILD_LED_PIN, OUTPUT);
+  lora.Init(&Serial1, LORA_DEFAULT_BAUDRATE, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
   loraSetup(&Serial1);
 
   vTaskDelay(pdMS_TO_TICKS(delay_for_initialization));

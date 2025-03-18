@@ -16,3 +16,17 @@ void taskLedBlink(void *pvParameters)
     }
     vTaskDelete(nullptr);
 }
+
+void toggleLED()
+{
+  if (digitalRead(INBUILD_LED_PIN) == HIGH)
+  {
+    digitalWrite(INBUILD_LED_PIN, LOW);
+    Serial.println("LED OFF, S0");
+  }
+  else
+  {
+    digitalWrite(INBUILD_LED_PIN, HIGH);
+    Serial.println("LED ON, S0");
+  }
+}

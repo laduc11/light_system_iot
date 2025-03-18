@@ -4,5 +4,6 @@
 #include "globals.h"
 
 void taskLedBlink(void *pvParameters);
+void toggleLed();
 
 #endif // TASK_INBUILD_LED_H

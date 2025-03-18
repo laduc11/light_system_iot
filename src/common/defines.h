@@ -71,8 +71,8 @@
 #define LORA_MAX_TIMES_RESEND 3
 #define LORA_DEFAULT_BAUDRATE   9600
 
-#define UART_LORA_TXD_PIN 1
-#define UART_LORA_RXD_PIN 3
+#define UART_LORA_TXD_PIN 1     // TX on ESP 32
+#define UART_LORA_RXD_PIN 3     // RX tren ESP 32
 #define TIME_CONFIGURE_PROCESS (1 * 1000)
 #define TIME_LORA_RECV_PROCESS 10
 // LORA SENDING PROCESSING STATUS
@@ -107,21 +107,21 @@
 #define PWM_PIN 5
 
 // DEFINE DELAY
-#define delay_for_initialization (3000)
-#define delay_wifi (3600 * 1000)
-#define delay_connect (100)
-#define delay_mqtt (100)
-#define delay_send_message (60 * 1000)
-#define delay_lora_configure (2000)
-#define delay_led_blink (3000)
-#define delay_rev_lora_process (1)
-#define delay_send_lora_process (10 * 1000)
-#define delay_lora_dummy_send (30 * 1000 + 13)
-#define delay_lora_waiting_ack (60 * 1000 + 13)
-#define delay_handle_mqtt_buffer (47)
-#define delay_handle_lora_buffer (100)
-#define delay_waiting_ack_process (1000)
-#define delay_dimming_debug (100)
+#define delay_for_initialization    (1000)
+#define delay_wifi                  (3600 * 1000)
+#define delay_connect               (100)
+#define delay_mqtt                  (100)
+#define delay_send_message          (60 * 1000)
+#define delay_lora_configure        (1000)
+#define delay_led_blink             (3000)
+#define delay_rev_lora_process      (1)
+#define delay_send_lora_process     (10 * 1000)
+#define delay_lora_dummy_send       (30 * 1000 + 13)
+#define delay_lora_waiting_ack      (60 * 1000 + 13)
+#define delay_handle_mqtt_buffer    (47)
+#define delay_handle_lora_buffer    (100)
+#define delay_waiting_ack_process   (1000)
+#define delay_dimming_debug         (100)
 
 // DEFINE WATCH DOG
 #define RESET_WATCHDOG_TIME (120) // seconds
