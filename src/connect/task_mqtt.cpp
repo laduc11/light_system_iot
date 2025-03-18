@@ -14,8 +14,9 @@ void controlRelay(String device, String state)
         Serial.println("LoRa is not initialized or config fail");
         return;
     }
+    String relay_template = "Relay: ";
     String msg = "";
-    msg = device + String(": ") + state;
+    msg = device + " {" + relay_template + state + " }";
 
     // Send message via LoRa
     LoRa_E220_JP *lora_ptr = getLoraIns();
@@ -41,8 +42,9 @@ void controlPwm(String device, String value)
         Serial.println("LoRa is not initialized or config fail");
         return;
     }
+    String pwm_template = "PWM: ";
     String msg = "";
-    msg = device + String(": ") + value;
+    msg = device + " { " + pwm_template + value + " }";
 
     // Send message via LoRa
     LoRa_E220_JP *lora_ptr = getLoraIns();
