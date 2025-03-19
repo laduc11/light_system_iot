@@ -6,6 +6,58 @@ struct LoRaConfigItem_t config;
 RecvFrame_t data;
 String data_buffer;
 
+// Function to extract device_id, method, and value from data_buffer
+int device_id;
+String method;
+String value;
+// Function to extract device_id, method, and value from data_buffer
+void extractFields(String data_buffer, int &device_id, String &method, String &value)
+{
+  // Check if the string contains "test_2" or "test_4"
+  if (data_buffer.indexOf("test_2") >= 0 || data_buffer.indexOf("test_4") >= 0)
+  {
+    // Extract device_id from "test_2" or "test_4"
+    device_id = (data_buffer.indexOf("test_2") >= 0) ? 2 : 4;
+
+    // Extract method ("Relay" or "PWM")
+    if (data_buffer.indexOf("Relay") >= 0)
+    {
+      method = "Relay";
+
+      // Extract value of Relay ("high" or "low")
+      int relayPos = data_buffer.indexOf("Relay: ");
+      if (relayPos >= 0)
+      {
+        value = data_buffer.substring(relayPos + 7); // Get value after "Relay: "
+
+        // Remove any trailing whitespace or '}' character
+        size_t pos = value.indexOf('}');
+        if (pos != -1)
+        {                                  // Replace String::npos with -1
+          value = value.substring(0, pos); // Truncate after '}'
+        }
+      }
+    }
+    else if (data_buffer.indexOf("PWM") >= 0)
+    {
+      method = "PWM";
+
+      // Extract PWM value (number)
+      int pwmPos = data_buffer.indexOf("PWM: ");
+      if (pwmPos >= 0)
+      {
+        value = data_buffer.substring(pwmPos + 5); // Get value after "PWM: "
+      }
+    }
+  }
+  else
+  {
+    device_id = -1;
+    method = "Invalid";
+    value = "Invalid";
+  }
+}
+
 void LoRaRecvTask(void *pvParameters)
 {
   Serial.println("check point");
@@ -31,19 +83,39 @@ void LoRaRecvTask(void *pvParameters)
       Serial.printf("RSSI: %d dBm\n", data.rssi);
       Serial.flush();
 
-      if (data_buffer == String("test_4: high"))
+      // Extract fields: device_id, method, value
+      extractFields(data_buffer, device_id, method, value);
+      // if (data_buffer == String("test_4: high"))
+      // {
+      //   digitalWrite(INBUILD_LED_PIN, HIGH);
+      //   Serial.println("LED ON, S0");
+      // }
+      // else if (data_buffer == String("test_4: low"))
+      // {
+      //   digitalWrite(INBUILD_LED_PIN, LOW);
+      //   Serial.println("LED OFF, S0");
+      // }
+      // else
+      // {
+      //   Serial.println("Received string not match");
+      // }
+      if (device_id)
       {
-        digitalWrite(INBUILD_LED_PIN, HIGH);
-        Serial.println("LED ON, S0");
-      }
-      else if (data_buffer == String("test_4: low"))
-      {
-        digitalWrite(INBUILD_LED_PIN, LOW);
-        Serial.println("LED OFF, S0");
-      }
-      else
-      {
-        Serial.println("Received string not match");
+        if (method == "Relay")
+        {
+          if (value == "high")
+          {
+            setRelayOn();
+          }
+          else if (value == "low")
+          {
+            setRelayOff();
+          }
+        }
+        else if (method == "PWM")
+        {
+          pwm_set_duty(int(value.toInt()));
+        }
       }
     }
     else
