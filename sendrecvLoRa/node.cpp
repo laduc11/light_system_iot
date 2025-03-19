@@ -188,18 +188,130 @@ void loraInit(void *pvParameters)
 {
 }
 
+void readDHT20(void *pvParam)
+{
+  vTaskDelay(pdMS_TO_TICKS(1000));
+  DHT20 *dht = (DHT20 *)pvParam;
+  uint8_t count = 0;
+  while (true)
+  {
+    // READ DATA
+    int status = dht->read();
+    if (count % 5 == 0)
+    {
+      count = 0;
+      Serial.print('\n');
+      Serial.println("Type\tHumidity (%)\tTemp (°C)\tStatus");
+    }
+    count++;
+    //
+    // Print to Serial
+    Serial.print("DHT20 \t");
+    //  DISPLAY DATA, sensor has only one decimal.
+    Serial.print(dht->getHumidity(), 1);
+    String a(dht->getHumidity(), 1);
+    Serial.print("\t\t");
+    Serial.print(dht->getTemperature(), 1);
+    Serial.print("\t\t");
+    switch (status)
+    {
+    case DHT20_OK:
+      Serial.print("OK");
+      break;
+    case DHT20_ERROR_CHECKSUM:
+      Serial.print("Checksum error");
+      break;
+    case DHT20_ERROR_CONNECT:
+      Serial.print("Connect error");
+      break;
+    case DHT20_MISSING_BYTES:
+      Serial.print("Missing bytes");
+      break;
+    case DHT20_ERROR_BYTES_ALL_ZERO:
+      Serial.print("All bytes read zero");
+      break;
+    case DHT20_ERROR_READ_TIMEOUT:
+      Serial.print("Read time out");
+      break;
+    case DHT20_ERROR_LASTREAD:
+      Serial.print("Error read too fast");
+      break;
+    default:
+      Serial.print("Unknown error");
+      break;
+    }
+    Serial.println();
+
+    vTaskDelay(pdMS_TO_TICKS(3000));
+  }
+}
+
+void sendCorrectDataToGateway(void *pvParam)
+{
+  DHT20 *dht = (DHT20 *)pvParam;
+  while (1)
+  {
+    JsonDocument jsonDoc;
+
+    const char *devices[] = {"test_2"};
+    uint8_t relayState = digitalRead(RELAY_PIN);
+    String switchState;
+    if (relayState == HIGH)
+    {
+      switchState = "high";
+    }
+    else
+    {
+      switchState = "low";
+    }
+
+    for (int i = 0; i < 1; i++)
+    {
+      JsonArray deviceArray = jsonDoc[devices[i]].to<JsonArray>();
+      JsonObject statusObj = deviceArray.add<JsonObject>();
+      statusObj["switchstate"] = switchState;
+      statusObj["humidity"] = String(dht->getHumidity(), 1);
+      statusObj["temperature"] = String(dht->getTemperature(), 1);
+    }
+
+    char buffer[512];
+    serializeJson(jsonDoc, buffer, sizeof(buffer));
+
+    publishData(MQTT_SENDING_VALUE, buffer);
+
+    printlnData("Sending Data to Gateway:");
+    printlnData(buffer);
+    vTaskDelay(pdMS_TO_TICKS(5000));
+  }
+}
+
 void setup()
 {
 
   Serial.begin(9600, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   Serial1.begin(9600, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
   pinMode(INBUILD_LED_PIN, OUTPUT);
-  lora.Init(&Serial1, LORA_DEFAULT_BAUDRATE, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
-  loraSetup(&Serial1);
 
+  // Initialize DHT20
+  Wire.begin(21, 22); // For I2C DHT20
+  DHT20 *dht = new DHT20(&Wire);
+  if (!dht->begin())
+  {
+    Serial.println("Failed to initialize DHT20 sensor!");
+    // while (1);
+  }
+  Serial.println("DHT20 initialized successfully.");
+  delay(2000);
+
+  // lora.Init(&Serial1, LORA_DEFAULT_BAUDRATE, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
+  // loraSetup(&Serial1);
+  connect_init();
+  device_init();
+  // xTaskCreate(readDHT20, "dht20", 4096, dht, 1, nullptr);
   vTaskDelay(pdMS_TO_TICKS(delay_for_initialization));
+  // xTaskCreate(sendCorrectDataToGateway, "send", 4096, dht, 1, nullptr);
 
-  xTaskCreate(LoRaRecvTask, "UART receiver", 4096, nullptr, 0, nullptr);
+  // xTaskCreate(LoRaRecvTask, "UART receiver", 4096, nullptr, 0, nullptr);
 }
 
 void loop()

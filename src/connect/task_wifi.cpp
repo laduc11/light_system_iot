@@ -13,7 +13,8 @@ void taskWifi(void *pvParameters)
     int wifiRetryCount = 0;
     while (WiFi.status() != WL_CONNECTED && wifiRetryCount < 20)
     {
-        if (nullptr != getDebugSerial()) {
+        if (nullptr != getDebugSerial())
+        {
             getDebugSerial()->printf("Attempt %d: WiFi Status = %d\n", wifiRetryCount + 1, WiFi.status());
         }
         resetWatchdog();
@@ -41,7 +42,8 @@ void taskWifi(void *pvParameters)
 
             while (WiFi.status() != WL_CONNECTED && retryCount < 20)
             {
-                if (nullptr !=  getDebugSerial()) {
+                if (nullptr != getDebugSerial())
+                {
                     getDebugSerial()->printf("Reconnect attempt %d: WiFi Status = %d\n", retryCount + 1, WiFi.status());
                 }
                 resetWatchdog();

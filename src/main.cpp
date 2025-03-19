@@ -1,7 +1,7 @@
 #if defined(USING_NODE_MODE)
-    #include "node.cpp"
+#include "node.cpp"
 #elif defined(USING_GATEWAY_MODE)
-    #include "gateway.cpp"
+#include "gateway.cpp"
 #else
-    #include "example/blink_led.cpp"
+#include "example/blink_led.cpp"
 #endif
