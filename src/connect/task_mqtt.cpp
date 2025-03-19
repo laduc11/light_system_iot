@@ -107,7 +107,7 @@ void callback(char *topic, byte *payload, unsigned int length)
                 printData("Check for ");
                 printlnData(device);
                 // Code for sending message to control relay with LoRa to node
-                controlRelay(device, params);
+                // controlRelay(device, params);
 
                 // Publish message to server to synchronous state of device
                 JsonDocument jsonDoc;
@@ -130,7 +130,7 @@ void callback(char *topic, byte *payload, unsigned int length)
                 printlnData(device);
 
                 // Code for sending messag to adjust pwm value with LoRa to node
-                controlPwm(device, params);
+                // controlPwm(device, params);
                 // Publish message to server to synchronous state of device
 
                 JsonDocument jsonDoc;
@@ -214,10 +214,10 @@ void taskMQTT(void *pvParameters)
         vTaskDelay(delay_connect / portTICK_PERIOD_MS);
     }
     // Wait setting up LoRa completely
-    while (getLoraIns() == nullptr)
-    {
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
+    // while (getLoraIns() == nullptr)
+    // {
+    //     vTaskDelay(pdMS_TO_TICKS(10));
+    // }
 
     client.setServer(MQTT_SERVER, MQTT_PORT);
     client.setKeepAlive(30);

@@ -2,7 +2,10 @@
 
 void taskWifi(void *pvParameters)
 {
+    Serial.println("check point");
     addTaskToWatchdog(NULL);
+    Serial.println("check point 2");
+
     WiFi.mode(WIFI_STA);
 
     printData("Connecting to SSID: ");

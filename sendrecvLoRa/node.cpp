@@ -291,6 +291,7 @@ void setup()
   Serial.begin(9600, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   Serial1.begin(9600, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
   pinMode(INBUILD_LED_PIN, OUTPUT);
+  initDebugSerial(&Serial);
 
   // Initialize DHT20
   Wire.begin(21, 22); // For I2C DHT20
@@ -305,11 +306,13 @@ void setup()
 
   // lora.Init(&Serial1, LORA_DEFAULT_BAUDRATE, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
   // loraSetup(&Serial1);
+  initWatchdogTimer(RESET_WATCHDOG_TIME);
   connect_init();
   device_init();
-  // xTaskCreate(readDHT20, "dht20", 4096, dht, 1, nullptr);
+
+  xTaskCreate(readDHT20, "dht20", 4096, dht, 1, nullptr);
   vTaskDelay(pdMS_TO_TICKS(delay_for_initialization));
-  // xTaskCreate(sendCorrectDataToGateway, "send", 4096, dht, 1, nullptr);
+  xTaskCreate(sendCorrectDataToGateway, "send", 4096, dht, 1, nullptr);
 
   // xTaskCreate(LoRaRecvTask, "UART receiver", 4096, nullptr, 0, nullptr);
 }
