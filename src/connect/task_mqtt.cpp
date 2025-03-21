@@ -241,11 +241,6 @@ void taskMQTT(void *pvParameters)
     {
         vTaskDelay(delay_connect / portTICK_PERIOD_MS);
     }
-    // Wait setting up LoRa completely
-    // while (getLoraIns() == nullptr)
-    // {
-    //     vTaskDelay(pdMS_TO_TICKS(10));
-    // }
 
     client.setServer(MQTT_SERVER, MQTT_PORT);
     client.setKeepAlive(30);

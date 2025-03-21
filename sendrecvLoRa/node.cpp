@@ -154,6 +154,7 @@ NodeStatus deserializeJsonFormat(const String &dataraw)
   Serial.println("Deserialize data success.");
   return node;
 }
+
 void LoRaRecvTask(void *pvParameters)
 {
   Serial.println("check point");
@@ -225,48 +226,8 @@ void LoRaSendTask(void *pvParameters)
   }
 }
 
-int temp = 0;
-void loraSetup(void *pvParameters)
-{
-  HardwareSerial *serial = (HardwareSerial *)pvParameters;
-  // Set Serial1 for connecting to loRa
-  // Initialize Serial communication
-  lora.SetDefaultConfigValue(config);
-
-  // Set initial configuration values
-  config.own_address = 0x0002;
-  config.baud_rate = BAUD_9600;
-  config.air_data_rate = BW125K_SF9;
-  config.subpacket_size = SUBPACKET_200_BYTE;
-  config.rssi_ambient_noise_flag = RSSI_AMBIENT_NOISE_ENABLE;
-  config.transmitting_power = TX_POWER_13dBm;
-  config.own_channel = 0x00;
-  config.rssi_byte_flag = RSSI_BYTE_ENABLE;
-  config.transmission_method_type = UART_P2P_MODE;
-  config.lbt_flag = LBT_DISABLE;
-  config.wor_cycle = WOR_2000MS;
-  config.encryption_key = 0;
-  config.target_address = 0xffff;
-  config.target_channel = 0x00;
-
-  if (lora.InitLoRaSetting(config) != 0)
-  {
-    while (lora.InitLoRaSetting(config) != 0)
-    {
-      Serial.println("Lora init fail!");
-      vTaskDelay(pdMS_TO_TICKS(delay_lora_configure));
-    }
-  }
-  Serial.println("Lora init Success.");
-}
-
-void loraInit(void *pvParameters)
-{
-}
-
 void readDHT20(void *pvParam)
 {
-  vTaskDelay(pdMS_TO_TICKS(1000));
   DHT20 *dht = (DHT20 *)pvParam;
   uint8_t count = 0;
   while (true)
@@ -361,38 +322,44 @@ void sendCorrectDataToGateway(void *pvParam)
   }
 }
 
+/* Setup function */
 void setup()
 {
-
+  // Initialize Pin and Serial
   Serial.begin(9600, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   Serial1.begin(9600, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
   pinMode(INBUILD_LED_PIN, OUTPUT);
   initDebugSerial(&Serial);
 
+  // Initialize watchdog
+  initWatchdogTimer(RESET_WATCHDOG_TIME);
+
   // Initialize DHT20
   Wire.begin(21, 22); // For I2C DHT20
   DHT20 *dht = new DHT20(&Wire);
-  if (!dht->begin())
+  while (!dht->begin())
   {
     Serial.println("Failed to initialize DHT20 sensor!");
-    // while (1);
+    delay(100);   // Wait 100ms and retry to connect
   }
   Serial.println("DHT20 initialized successfully.");
-  delay(2000);
 
-  // lora.Init(&Serial1, LORA_DEFAULT_BAUDRATE, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
-  // loraSetup(&Serial1);
-  initWatchdogTimer(RESET_WATCHDOG_TIME);
-  connect_init();
+  // Initialize LoRa
+  initLora();
+  setConfiguration(NODE, 0x0002);   // Hard code with address node: 0x0002
+
+  // Initialize Network layer and Device layer
+  connect_init();   // The node cannot connect to wifi -> Remove this line
   device_init();
 
+  // Create task for RTOS
   xTaskCreate(readDHT20, "dht20", 4096, dht, 1, nullptr);
-  vTaskDelay(pdMS_TO_TICKS(delay_for_initialization));
-  xTaskCreate(sendCorrectDataToGateway, "send", 4096, dht, 1, nullptr);
+  xTaskCreate(sendCorrectDataToGateway, "send", 4096, dht, 1, nullptr);   // This line use for connecting to server -> Remove this line
 
   // xTaskCreate(LoRaRecvTask, "UART receiver", 4096, nullptr, 0, nullptr);
 }
 
+/* Loop function */
 void loop()
 {
   // put your main code here, to run repeatedly:
