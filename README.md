@@ -10,7 +10,7 @@ build_flags =
 ```
 
 ### 2. Node mode
-Open `platformio.ini` and find field `build_flags`. Add the command `-DUSE_NODE_MODE` like below
+Open `platformio.ini` and find field `build_flags`. Add the command `-DUSING_NODE_MODE` like below
 ```ini
 build_flags = 
   -DCORE_DEBUG_LEVEL=0
