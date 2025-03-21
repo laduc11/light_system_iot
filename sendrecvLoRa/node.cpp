@@ -58,6 +58,102 @@ void extractFields(String data_buffer, int &device_id, String &method, String &v
   }
 }
 
+enum CONTROL{
+  Unknown,
+  Relay,
+  Pwm
+};
+
+bool DeserializeData(const String &dataraw)
+// SmartPole 001 { Relay: high/low } || SmartPole 001 { PWM: 50 }
+// 012345678901234567890123456789012    0123456789012345678901234
+{
+  // Precheck string
+  if (!dataraw.startsWith("SmartPole"))
+  {
+    Serial.println("Receive wrong format message SmartPole.");
+    return false;
+  }
+  else
+  {
+    if (!config.own_address == dataraw[12]) return false;
+  }
+  Serial.println("Correct address, processing package ....");
+  // Pre-check done, xu ly data
+  String content = dataraw.substring(16, dataraw.lastIndexOf(' '));
+  //Relay: high/low_||PWM: 50_
+  CONTROL flag = Unknown;
+  if (content.startsWith("Relay:")) flag = Relay;
+  else flag = Pwm;
+  String value = content.substring(content.indexOf(' ') + 1, content.lastIndexOf(' ') - 1);
+  if (flag == Relay)
+  {
+    if (value.startsWith("high")) 
+    {
+      setRelayOn();
+      return true;
+    }
+    if (value.startsWith("low")) 
+    {
+      setRelayOff();
+      return true;
+    }
+    Serial.println("Receive wrong format message of Relay control.");
+    return false;
+  }
+  if (flag == Pwm)
+  {
+    int duty = value.toInt();
+    pwm_set_duty(duty);
+    return true;
+  }
+  Serial.println("Receive wrong format message, not include Relay or Pwm.");
+  return false;
+}
+
+class NodeStatus {
+public:
+  int address;
+  int state;
+  int pwm_val;
+  NodeStatus(int add = -1, int state = 0, int val = -1)
+  {
+    this->address = add;
+    this->state = state;
+    this->pwm_val = val;
+  }
+};
+
+NodeStatus deserializeJsonFormat(const String &dataraw)
+{
+  NodeStatus node;
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, dataraw);
+
+  if (error)
+  {
+      printData("[ERROR] deserializeJson() failed: ");
+      printlnData(error.f_str());
+      return node;
+  }
+
+  // get value from Json message
+  String address = doc["Address"].as<String>(); // _001 -> 1
+  JsonObject data = doc["data"].as<JsonObject>();
+  String state = data["Relay"].as<String>();
+  String pwm_val = data["PWM"].as<String>();
+  
+  // Pass value to Node's attributes
+  node.address = address.toInt();
+  node.pwm_val = pwm_val.toInt();
+  if (state == "high") // do server gui ve qui dinh high/low
+    node.state = 1;
+  if (state == "low")
+    node.state = 0;
+
+  Serial.println("Deserialize data success.");
+  return node;
+}
 void LoRaRecvTask(void *pvParameters)
 {
   Serial.println("check point");
@@ -83,39 +179,19 @@ void LoRaRecvTask(void *pvParameters)
       Serial.printf("RSSI: %d dBm\n", data.rssi);
       Serial.flush();
 
-      // Extract fields: device_id, method, value
-      extractFields(data_buffer, device_id, method, value);
-      // if (data_buffer == String("test_4: high"))
-      // {
-      //   digitalWrite(INBUILD_LED_PIN, HIGH);
-      //   Serial.println("LED ON, S0");
-      // }
-      // else if (data_buffer == String("test_4: low"))
-      // {
-      //   digitalWrite(INBUILD_LED_PIN, LOW);
-      //   Serial.println("LED OFF, S0");
-      // }
-      // else
-      // {
-      //   Serial.println("Received string not match");
-      // }
-      if (device_id)
+      if (data_buffer == String("test_4: high"))
       {
-        if (method == "Relay")
-        {
-          if (value == "high")
-          {
-            setRelayOn();
-          }
-          else if (value == "low")
-          {
-            setRelayOff();
-          }
-        }
-        else if (method == "PWM")
-        {
-          pwm_set_duty(int(value.toInt()));
-        }
+        digitalWrite(INBUILD_LED_PIN, HIGH);
+        Serial.println("LED ON, S0");
+      }
+      else if (data_buffer == String("test_4: low"))
+      {
+        digitalWrite(INBUILD_LED_PIN, LOW);
+        Serial.println("LED OFF, S0");
+      }
+      else
+      {
+        Serial.println("Received string not match");
       }
     }
     else

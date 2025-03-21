@@ -7,6 +7,30 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 /*<=================================Private Function=================================>*/
+// convert to this string {"Address":"SmartPole 001","data":{"Relay":"high/low","PWM":"50"}}
+String serializeJsonFormat(String address, String method, String value)
+{
+    JsonDocument doc;
+
+    doc["Address"] = address;
+    JsonObject data = doc.createNestedObject("data");
+    if (method == "Relay")
+    {
+        data[method] = value;
+        data["PWM"] = "-1";
+    }
+    else if (method == "PWM")
+    {
+        data[method] = value;
+        data["Relay"] = "unchanged";
+    }
+    else return "";
+    String jsonStr;
+    serializeJson(doc, jsonStr);
+
+    return jsonStr;
+}
+
 void controlRelay(String device, String state)
 {
     if (!getLoraIns() || !getConfigLora())
@@ -14,9 +38,11 @@ void controlRelay(String device, String state)
         Serial.println("LoRa is not initialized or config fail");
         return;
     }
-    String relay_template = "Relay: ";
-    String msg = "";
-    msg = device + " { " + relay_template + state + " }";
+    // String relay_template = "Relay: ";
+    // String msg = "";
+    // msg = device + " { " + relay_template + state + " }"; // SmartPole 001 { Relay: high/low }
+    String address = device.substring(device.indexOf(' '));
+    String msg = serializeJsonFormat(address, "Relay", state);
 
     // Send message via LoRa
     LoRa_E220_JP *lora_ptr = getLoraIns();
@@ -42,9 +68,11 @@ void controlPwm(String device, String value)
         Serial.println("LoRa is not initialized or config fail");
         return;
     }
-    String pwm_template = "PWM: ";
-    String msg = "";
-    msg = device + " { " + pwm_template + value + " }";
+    // String pwm_template = "PWM: ";
+    // String msg = "";
+    // msg = device + " { " + pwm_template + value + " }"; // SmartPole 001 { PWM: 50 }
+    String address = device.substring(device.indexOf(' '));
+    String msg = serializeJsonFormat(address, "PWM", value);
 
     // Send message via LoRa
     LoRa_E220_JP *lora_ptr = getLoraIns();
@@ -100,14 +128,14 @@ void callback(char *topic, byte *payload, unsigned int length)
         printlnData(method);
         printData("Params: ");
         printlnData(params);
-        if (device == "test_3" || device == "test_2" || device == "test_4")
+        if (device == "SmartPole 001" || device == "SmartPole 002")
         {
             if (method == "setState")
             {
                 printData("Check for ");
                 printlnData(device);
                 // Code for sending message to control relay with LoRa to node
-                // controlRelay(device, params);
+                controlRelay(device, params);
 
                 // Publish message to server to synchronous state of device
                 JsonDocument jsonDoc;
@@ -130,7 +158,7 @@ void callback(char *topic, byte *payload, unsigned int length)
                 printlnData(device);
 
                 // Code for sending messag to adjust pwm value with LoRa to node
-                // controlPwm(device, params);
+                controlPwm(device, params);
                 // Publish message to server to synchronous state of device
 
                 JsonDocument jsonDoc;
