@@ -1,116 +1,5 @@
 #include "globals.h"
 
-LoRa_E220_JP lora;
-struct LoRaConfigItem_t config;
-// bool loraSend(String message);
-RecvFrame_t data;
-String data_buffer;
-
-// Function to extract device_id, method, and value from data_buffer
-int device_id;
-String method;
-String value;
-// Function to extract device_id, method, and value from data_buffer
-void extractFields(String data_buffer, int &device_id, String &method, String &value)
-{
-  // Check if the string contains "test_2" or "test_4"
-  if (data_buffer.indexOf("test_2") >= 0 || data_buffer.indexOf("test_4") >= 0)
-  {
-    // Extract device_id from "test_2" or "test_4"
-    device_id = (data_buffer.indexOf("test_2") >= 0) ? 2 : 4;
-
-    // Extract method ("Relay" or "PWM")
-    if (data_buffer.indexOf("Relay") >= 0)
-    {
-      method = "Relay";
-
-      // Extract value of Relay ("high" or "low")
-      int relayPos = data_buffer.indexOf("Relay: ");
-      if (relayPos >= 0)
-      {
-        value = data_buffer.substring(relayPos + 7); // Get value after "Relay: "
-
-        // Remove any trailing whitespace or '}' character
-        size_t pos = value.indexOf('}');
-        if (pos != -1)
-        {                                  // Replace String::npos with -1
-          value = value.substring(0, pos); // Truncate after '}'
-        }
-      }
-    }
-    else if (data_buffer.indexOf("PWM") >= 0)
-    {
-      method = "PWM";
-
-      // Extract PWM value (number)
-      int pwmPos = data_buffer.indexOf("PWM: ");
-      if (pwmPos >= 0)
-      {
-        value = data_buffer.substring(pwmPos + 5); // Get value after "PWM: "
-      }
-    }
-  }
-  else
-  {
-    device_id = -1;
-    method = "Invalid";
-    value = "Invalid";
-  }
-}
-
-enum CONTROL{
-  Unknown,
-  Relay,
-  Pwm
-};
-
-bool DeserializeData(const String &dataraw)
-// SmartPole 001 { Relay: high/low } || SmartPole 001 { PWM: 50 }
-// 012345678901234567890123456789012    0123456789012345678901234
-{
-  // Precheck string
-  if (!dataraw.startsWith("SmartPole"))
-  {
-    Serial.println("Receive wrong format message SmartPole.");
-    return false;
-  }
-  else
-  {
-    if (!config.own_address == dataraw[12]) return false;
-  }
-  Serial.println("Correct address, processing package ....");
-  // Pre-check done, xu ly data
-  String content = dataraw.substring(16, dataraw.lastIndexOf(' '));
-  //Relay: high/low_||PWM: 50_
-  CONTROL flag = Unknown;
-  if (content.startsWith("Relay:")) flag = Relay;
-  else flag = Pwm;
-  String value = content.substring(content.indexOf(' ') + 1, content.lastIndexOf(' ') - 1);
-  if (flag == Relay)
-  {
-    if (value.startsWith("high")) 
-    {
-      setRelayOn();
-      return true;
-    }
-    if (value.startsWith("low")) 
-    {
-      setRelayOff();
-      return true;
-    }
-    Serial.println("Receive wrong format message of Relay control.");
-    return false;
-  }
-  if (flag == Pwm)
-  {
-    int duty = value.toInt();
-    pwm_set_duty(duty);
-    return true;
-  }
-  Serial.println("Receive wrong format message, not include Relay or Pwm.");
-  return false;
-}
-
 class NodeStatus {
 public:
   int address;
@@ -157,74 +46,77 @@ NodeStatus deserializeJsonFormat(const String &dataraw)
 
 void LoRaRecvTask(void *pvParameters)
 {
-  Serial.println("check point");
+  String data_buffer;   // Simple buffer for received data
+  RecvFrame_t data;
+  Serial.println("Waiting for new Package coming ...");
   while (1)
   {
-    if (lora.RecieveFrame(&data) == 0)
+    if (getLoraIns()->RecieveFrame(&data) == 0)
     {
+      data_buffer = String(data.recv_data, data.recv_data_len);
       Serial.print("Data size: ");
       Serial.println(data.recv_data_len);
-      data_buffer = "";
-      for (uint16_t i = 0; i < data.recv_data_len; i++)
-      {
-        data_buffer += (char)data.recv_data[i];
-        Serial.printf("%c", data.recv_data[i]);
-      }
+      Serial.print(data_buffer);
+
       Serial.println();
-      // Serial.println("HEX dump:");
-      // for (uint16_t i = 0; i < data.recv_data_len; i++)
-      // {
-      //   Serial.printf("%02x ", data.recv_data[i]);
-      // }
-      // Serial.println();
       Serial.printf("RSSI: %d dBm\n", data.rssi);
       Serial.flush();
 
-      if (data_buffer == String("test_4: high"))
+      NodeStatus node = deserializeJsonFormat(data_buffer);
+      // Check destination address
+      if (node.address != getConfigLora()->own_address)
       {
-        digitalWrite(INBUILD_LED_PIN, HIGH);
-        Serial.println("LED ON, S0");
+        Serial.println("Not equal to onw address.");
+        continue;
       }
-      else if (data_buffer == String("test_4: low"))
+
+      if (node.pwm_val >= 0) 
       {
-        digitalWrite(INBUILD_LED_PIN, LOW);
-        Serial.println("LED OFF, S0");
+        // Handle dimming control
+        // pwm_val = -1: Unchanged
+        pwm_set_duty(node.pwm_val);
       }
-      else
+      else 
       {
-        Serial.println("Received string not match");
-      }
+        // Handle Relay control
+        // node.state == -1: Unchanged
+        if (node.state == 1) 
+        {
+          setRelayOn();
+          digitalWrite(INBUILD_LED_PIN, HIGH);
+        }
+        else if (node.state == 0)
+        {
+          setRelayOff();
+          digitalWrite(INBUILD_LED_PIN, LOW);
+        }
+      } 
     }
-    else
-    {
-      Serial.println("Receive data too large");
-    }
-    vTaskDelay(pdMS_TO_TICKS(delay_rev_lora_process));
   }
   vTaskDelete(nullptr);
 }
 
-void LoRaSendTask(void *pvParameters)
-{
-  vTaskDelay(pdMS_TO_TICKS(delay_for_initialization));
+// void LoRaSendTask(void *pvParameters)
+// {
+//   vTaskDelay(pdMS_TO_TICKS(delay_for_initialization));
 
-  while (1)
-  {
-    String msg = "Xin chao nguoi dep.";
-    if (lora.SendFrame(config, (uint8_t *)msg.c_str(), msg.length()) == 0)
-    {
-      Serial.println("Send message success.");
-      // notice to server fnction me dont know
-    }
-    else
-    {
-      Serial.println("Send message failed.");
-      // notice to server function me dont know
-    }
-    Serial.flush();
-    vTaskDelay(pdMS_TO_TICKS(delay_lora_configure));
-  }
-}
+//   while (1)
+//   {
+//     String msg = "Xin chao nguoi dep.";
+//     if (lora.SendFrame(config, (uint8_t *)msg.c_str(), msg.length()) == 0)
+//     {
+//       Serial.println("Send message success.");
+//       // notice to server fnction me dont know
+//     }
+//     else
+//     {
+//       Serial.println("Send message failed.");
+//       // notice to server function me dont know
+//     }
+//     Serial.flush();
+//     vTaskDelay(pdMS_TO_TICKS(delay_lora_configure));
+//   }
+// }
 
 void readDHT20(void *pvParam)
 {
@@ -329,34 +221,28 @@ void setup()
   Serial.begin(9600, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   Serial1.begin(9600, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
   pinMode(INBUILD_LED_PIN, OUTPUT);
+  digitalWrite(INBUILD_LED_PIN, LOW);
   initDebugSerial(&Serial);
 
   // Initialize watchdog
   initWatchdogTimer(RESET_WATCHDOG_TIME);
 
   // Initialize DHT20
-  Wire.begin(21, 22); // For I2C DHT20
-  DHT20 *dht = new DHT20(&Wire);
-  while (!dht->begin())
-  {
-    Serial.println("Failed to initialize DHT20 sensor!");
-    delay(100);   // Wait 100ms and retry to connect
-  }
-  Serial.println("DHT20 initialized successfully.");
+  // initDHT20();
 
   // Initialize LoRa
   initLora();
   setConfiguration(NODE, 0x0002);   // Hard code with address node: 0x0002
 
   // Initialize Network layer and Device layer
-  connect_init();   // The node cannot connect to wifi -> Remove this line
   device_init();
 
   // Create task for RTOS
-  xTaskCreate(readDHT20, "dht20", 4096, dht, 1, nullptr);
-  xTaskCreate(sendCorrectDataToGateway, "send", 4096, dht, 1, nullptr);   // This line use for connecting to server -> Remove this line
+  xTaskCreate(LoRaRecvTask, "Test Node receive", 1024*8, nullptr, 0, nullptr);
+  // xTaskCreate(readDHT20, "dht20", 4096, dht, 1, nullptr);
 
-  // xTaskCreate(LoRaRecvTask, "UART receiver", 4096, nullptr, 0, nullptr);
+  digitalWrite(INBUILD_LED_PIN, HIGH);
+
 }
 
 /* Loop function */
