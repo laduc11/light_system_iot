@@ -11,6 +11,13 @@ void taskInitRelayControl(void *pvParameter)
     vTaskDelete(NULL);
 }
 
+void initRelayControl()
+{
+    pinMode(RELAY_PIN, OUTPUT);
+    relay_status = RELAY_OFF;
+    digitalWrite(RELAY_PIN, RELAY_OFF);
+}
+
 void setRelayOn()
 {
     digitalWrite(RELAY_PIN, RELAY_ON);

@@ -38,9 +38,6 @@ void controlRelay(String device, String state)
         Serial.println("LoRa is not initialized or config fail");
         return;
     }
-    // String relay_template = "Relay: ";
-    // String msg = "";
-    // msg = device + " { " + relay_template + state + " }"; // SmartPole 001 { Relay: high/low }
     String address = device.substring(device.indexOf(' '));
     String msg = serializeJsonFormat(address, "Relay", state);
 
