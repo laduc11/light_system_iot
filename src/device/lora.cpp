@@ -1,8 +1,8 @@
 #include "lora.h"
 
 // Private  instance
-LoRa_E220_JP *lora_ptr = nullptr;
-LoRaConfigItem_t *configuration_ptr = nullptr;
+static LoRa_E220_JP *lora_ptr = nullptr;
+static LoRaConfigItem_t *configuration_ptr = nullptr;
 
 // Private function
 LoRaConfigItem_t *getGatewayConfiguration(uint16_t address)
@@ -55,8 +55,6 @@ void initLora()
     }
     lora_ptr = (LoRa_E220_JP *)malloc(sizeof(LoRa_E220_JP));
     lora_ptr->Init(&Serial1, LORA_DEFAULT_BAUDRATE, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
-
-    
 }
 
 void deinitLora()
@@ -88,12 +86,12 @@ void setConfiguration(Role role, uint16_t address)
     Serial.println("Lora init success!");
 }
 
-LoRa_E220_JP* getLoraIns()
+inline LoRa_E220_JP* getLoraIns()
 {
     return lora_ptr;
 }
 
-LoRaConfigItem_t* getConfigLora()
+inline LoRaConfigItem_t* getConfigLora()
 {
     return configuration_ptr;
 }
