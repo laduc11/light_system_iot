@@ -131,6 +131,12 @@
 #define RELAY_ON HIGH
 #define RELAY_OFF LOW
 
+// DEFINE I2C
+#define SDA_PIN 21
+#define SCL_PIN 22
+#define I2C_BAUDRATE    (100 * 1000)
+#define I2C_READ_DATA_PERIOD (3000)      // Read data every 3 seconds
+
 // DEFINE JSON MODE
 #define ON_JSON 1
 #define OFF_JSON 0
