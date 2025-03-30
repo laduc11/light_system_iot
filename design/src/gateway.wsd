@@ -1,0 +1,45 @@
+@startuml Gateway Processing
+skinparam sequenceMessageAlign center
+
+participant Gateway
+
+actor Node
+actor LoRa
+actor WIFI
+actor MQTT
+actor Server
+
+
+Gateway -> Gateway: setup()
+activate Gateway
+    Gateway -> LoRa ++: scanSurrondNode()
+        LoRa -> Node ++: getNodeState()
+        return node_state
+    return node_state
+    note left: list of active \nnodes
+deactivate Gateway
+
+Gateway -> Gateway: mqttCallback()
+activate Gateway
+    MQTT ->> Gateway: control_command
+    ' Processing message from Server
+    
+deactivate Gateway
+
+Gateway -> Gateway: loraCallback()
+activate Gateway
+    LoRa ->> Gateway: node_message
+    ' Processing message from Node
+
+    ' Save state of node
+    
+deactivate Gateway
+
+Gateway -> Gateway: mainLoop()
+activate Gateway
+    Gateway -> Gateway ++: getCurrentNodeState()
+    deactivate Gateway
+
+    Gateway ->> MQTT: list_node_state
+deactivate Gateway
+@enduml
