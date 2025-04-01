@@ -1,45 +1,167 @@
-@startuml Gateway Processing
+@startuml gateway_processing
+title The Sequence Diagram of Gateway Processing
 skinparam sequenceMessageAlign center
 
-participant Gateway
+participant Gateway         order 1
+participant WIFI            order 2
+participant MQTT            order 3
+queue ControlMessageQueue order 4
+queue LoraMessageQueue    order 4
+queue StateMessageQueue   order 4
+participant LoRa            order 5
 
-actor Node
-actor LoRa
-actor WIFI
-actor MQTT
-actor Server
-
+actor Node                  order 6
+actor Server                order 7
 
 Gateway -> Gateway: setup()
 activate Gateway
+    Gateway -> WIFI ++: connectToWifi()
+    return wifi_status
+
+    note left
+        All retry 
+        functions will 
+        1. Delay 2 seconds
+        2. Retry 5 times 
+    end note
+
+    opt wifi_status is not RET_OK
+        Gateway -> Gateway ++: reconnectToWifi()
+        deactivate Gateway
+    end
+
+    Gateway -> Gateway ++: setupMQTT()
+    note left
+        Handle 3 fields:
+        1. Server: setServer()
+        2. Callback: setCallback()
+        3. KeepAlive: setKeepAlive()
+    end note
+    deactivate Gateway
+
+    Gateway -> MQTT ++: connectToMQTT()
+    return mqtt_status
+
+    opt mqtt_status is not RET_OK
+        Gateway -> Gateway ++: reconnectToMQTT()
+        deactivate Gateway
+    end
+
+    Gateway -> MQTT ++: subscribe(topic)
+    deactivate MQTT
+
+    Gateway -> Gateway ++: initializeLora()
+    note left
+        Handle 3 fields:
+        1. UART Pin
+        2. UART Baudrate
+        3. Parity bit
+    end note
+    deactivate Gateway
+
+    Gateway -> LoRa ++: configureLoRa()
+    return lora_config_status
+
+    opt lora_config_status is not RET_OK
+        Gateway -> Gateway ++: reconnectToLora()
+        deactivate Gateway
+    end
+
     Gateway -> LoRa ++: scanSurrondNode()
         LoRa -> Node ++: getNodeState()
         return node_state
     return node_state
     note left: list of active \nnodes
+
+    Gateway -> MQTT ++: sendNodeState()
+        MQTT ->> Server: initialized_node_state
+    deactivate MQTT
 deactivate Gateway
 
-Gateway -> Gateway: mqttCallback()
-activate Gateway
-    MQTT ->> Gateway: control_command
-    ' Processing message from Server
-    
-deactivate Gateway
+par MQTT message processing
+    Gateway -> Gateway: mqttCallback()
+    activate Gateway
+        MQTT -> MQTT ++: haveNewMessage()
+            MQTT ->> Gateway: control_command
+        deactivate MQTT
+        ' Processing message from Server
+        Gateway -> Gateway ++: parseMessage()
+        deactivate Gateway
 
-Gateway -> Gateway: loraCallback()
-activate Gateway
-    LoRa ->> Gateway: node_message
-    ' Processing message from Node
+        Gateway -> ControlMessageQueue ++: pushMessage()
+        deactivate ControlMessageQueue
+        
+    deactivate Gateway
+else
+    |||
+    Gateway -> Gateway: runServerWorker()
+    activate Gateway
+        loop
+            Gateway -> ControlMessageQueue ++: getMessage()
+            return messgae
 
-    ' Save state of node
-    
-deactivate Gateway
+            opt message is valid
+                Gateway -> LoRa ++: sendControlCommand()
+                    LoRa ->> Node: control_command
+                deactivate LoRa
+            end
+
+            Gateway -> Gateway ++: sleep()
+            deactivate Gateway
+        end
+    deactivate Gateway
+end
+|||
+par LoRa message processing 
+    Gateway -> Gateway: loraCallback()
+    activate Gateway
+        LoRa -> LoRa ++: haveNewMeaasge()
+            LoRa ->> Gateway: node_message
+        deactivate LoRa
+        ' Processing message from Node
+        Gateway -> LoraMessageQueue ++: pushLoraMessage()
+        deactivate LoraMessageQueue
+    deactivate Gateway
+else
+    |||
+    Gateway -> Gateway: runLoraWorker()
+    activate Gateway
+        Gateway -> LoraMessageQueue ++: getLoraMessage()
+        return lora_message
+
+        Gateway -> Gateway ++: deserializeMessage()
+        deactivate Gateway
+
+        opt LoRa message is valid
+            Gateway -> StateMessageQueue ++: pushNodeState()
+            deactivate StateMessageQueue
+        end
+
+        Gateway -> Gateway ++: sleep()
+        note left
+            Sleep for a short 
+            period to handle 
+            messages as soon as 
+            possible.
+        end note
+        deactivate Gateway
+    deactivate Gateway
+end
+
 
 Gateway -> Gateway: mainLoop()
 activate Gateway
-    Gateway -> Gateway ++: getCurrentNodeState()
-    deactivate Gateway
+loop
+    Gateway -> StateMessageQueue ++: getCurrentNodeState()
+    return node_state
 
-    Gateway ->> MQTT: list_node_state
+    Gateway -> MQTT ++: sendNodeState()
+        MQTT ->> Server: node_state
+    deactivate MQTT
+
+    Gateway -> Gateway ++: sleep()
+    note left: avoid busy \nwaiting
+    deactivate Gateway
+end
 deactivate Gateway
 @enduml
