@@ -86,12 +86,12 @@ void setConfiguration(Role role, uint16_t address)
     Serial.println("Lora init success!");
 }
 
-inline LoRa_E220_JP* getLoraIns()
+LoRa_E220_JP* getLoraIns()
 {
     return lora_ptr;
 }
 
-inline LoRaConfigItem_t* getConfigLora()
+LoRaConfigItem_t* getConfigLora()
 {
     return configuration_ptr;
 }
