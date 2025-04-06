@@ -45,34 +45,34 @@
 #define COUNT_DOWN false
 
 // DEFINE PIN
-#define POLE_LED_PIN            5
+#define POLE_LED_PIN 5
 
 // UART COMMON
-#define UART_RXD_DEBUG_PIN      16
-#define UART_TXD_DEBUG_PIN      17
-#define UART_DEFAUT_BAUDRATE    9600
+#define UART_RXD_DEBUG_PIN 16
+#define UART_TXD_DEBUG_PIN 17
+#define UART_DEFAUT_BAUDRATE 9600
 
 // DEFINE SETUP FOR PWM LEDC POLE LED
-#define LEDC_CHANEL             0
-#define FREQ_HZ                 5000
-#define RESOLUTION              13
-#define INIT_DUTY_PWM           0
+#define LEDC_CHANEL 0
+#define FREQ_HZ 5000
+#define RESOLUTION 13
+#define INIT_DUTY_PWM 0
 #define MAX_DUTY_PWM (1 << 13) - 1 // 2^13 -1
 
 // DEFINE LED
-#define INBUILD_LED_PIN         2
-#define LED_ON                  HIGH
-#define LED_OFF                 LOW
+#define INBUILD_LED_PIN 2
+#define LED_ON HIGH
+#define LED_OFF LOW
 
 // DEFINE LORA
 #define LORA_MAX_BUFFER_SIZE 32
 #define LORA_MAX_WAITING_LIST 64 // This is the maximum element in waiting ack list
 #define LORA_TIMER_FACTOR_MSG_RESEND 5
 #define LORA_MAX_TIMES_RESEND 3
-#define LORA_DEFAULT_BAUDRATE   9600
+#define LORA_DEFAULT_BAUDRATE 9600
 
-#define UART_LORA_TXD_PIN 1
-#define UART_LORA_RXD_PIN 3
+#define UART_LORA_TXD_PIN 1 // TX on ESP 32
+#define UART_LORA_RXD_PIN 3 // RX tren ESP 32
 #define TIME_CONFIGURE_PROCESS (1 * 1000)
 #define TIME_LORA_RECV_PROCESS 10
 // LORA SENDING PROCESSING STATUS
@@ -97,8 +97,8 @@
 #define MQTT_FEED_TEST_DIMMING "BK_SmartPole/Feeds/V1"
 
 // DEFINE WIFI AP
-#define WIFI_SSID "Fatcat"
-#define WIFI_PASS "lnss2136"
+#define WIFI_SSID "22-08"
+#define WIFI_PASS "414414a2"
 
 // DEFINE DIMMING PWM
 #define PWM_CHANNEL 1
@@ -107,12 +107,12 @@
 #define PWM_PIN 5
 
 // DEFINE DELAY
-#define delay_for_initialization (10 * 1000)
+#define delay_for_initialization (1000)
 #define delay_wifi (3600 * 1000)
 #define delay_connect (100)
 #define delay_mqtt (100)
 #define delay_send_message (60 * 1000)
-#define delay_lora_configure (60 * 1000)
+#define delay_lora_configure (1000)
 #define delay_led_blink (3000)
 #define delay_rev_lora_process (1)
 #define delay_send_lora_process (10 * 1000)
@@ -130,6 +130,12 @@
 #define RELAY_PIN 18
 #define RELAY_ON HIGH
 #define RELAY_OFF LOW
+
+// DEFINE I2C
+#define SDA_PIN 21
+#define SCL_PIN 22
+#define I2C_BAUDRATE    (100 * 1000)
+#define I2C_READ_DATA_PERIOD (3000)      // Read data every 3 seconds
 
 // DEFINE JSON MODE
 #define ON_JSON 1

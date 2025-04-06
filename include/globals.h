@@ -11,6 +11,8 @@
 #include <esp_task_wdt.h>
 #include <vector>
 #include <esp32-hal-ledc.h>
+#include <common.h>
+#include <DHT20.h>
 
 // include common files
 #include "../src/common/defines.h"

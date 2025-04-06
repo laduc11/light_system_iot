@@ -5,6 +5,7 @@
 
 extern int relay_status;
 void taskInitRelayControl(void *pvParameter);
+void initRelayControl();
 void setRelayOn();
 void setRelayOff();
 

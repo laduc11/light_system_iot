@@ -1,100 +1,97 @@
 #include "lora.h"
 
-/*
-  // REG 0-1
-  0x0000,  // own_address 0
+// Private  instance
+static LoRa_E220_JP *lora_ptr = nullptr;
+static LoRaConfigItem_t *configuration_ptr = nullptr;
 
-  // REG 2
-  0b011,    // baud_rate 9600 bps
-  0b10000,  // air_data_rate SF:9 BW:125
-
-  // REG 3
-  0b00,  // subpacket_size 200
-  0b1,   // rssi_ambient_noise_flag enable
-  0b01,  // transmitting_power 13 dBm
-
-  // REG 4
-  0x00,  // own_channel 0
-
-  // REG 5
-  0b1,    // rssi_byte_flag enable
-  0b1,    // transmission_method_type p2p
-  0b0,    // lbt_flag 有効
-  0b011,  // wor_cycle 2000 ms
-
-  // REG 6-7
-  0x0000,  // encryption_key 0
-
-  // LOCAL CONFIG FOR SEND API
-  0x0000,  // target_address 0
-  0x00     // target_channel 0
-*/
-
-LoRa_E220_JP lora;
-struct LoRaConfigItem_t config;
-
-/**
- * @brief 
- * 
- */
-void loraInit()
+// Private function
+LoRaConfigItem_t *getGatewayConfiguration(uint16_t address)
 {
-  lora.Init(&Serial2, LORA_DEFAULT_BAUDRATE, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
-
-  // Set config
-  lora.SetDefaultConfigValue(config);
-  config.own_address = 0x1234;
-  config.own_channel = 0x01;
-#ifdef  LORA_CONFIG_MODE
-  lora.InitLoRaSetting(config);
-#endif  // LORA_CONFIG_MODE
+    LoRaConfigItem_t *configuration = (LoRaConfigItem_t *)malloc(sizeof(LoRaConfigItem_t));
+    configuration->own_address              = address;
+    configuration->baud_rate                = BAUD_9600;
+    configuration->air_data_rate            = BW125K_SF9;
+    configuration->subpacket_size           = SUBPACKET_200_BYTE;
+    configuration->rssi_ambient_noise_flag  = RSSI_AMBIENT_NOISE_ENABLE;
+    configuration->transmitting_power       = TX_POWER_13dBm;
+    configuration->own_channel              = 0x00;
+    configuration->rssi_byte_flag           = RSSI_BYTE_ENABLE;
+    configuration->transmission_method_type = UART_P2P_MODE;
+    configuration->lbt_flag                 = LBT_DISABLE;
+    configuration->wor_cycle                = WOR_2000MS;
+    configuration->encryption_key           = 0;
+    configuration->target_address           = 0xffff;
+    configuration->target_channel           = 0x00;
+    return configuration;
 }
 
-/**
- * @brief 
- * 
- * @param pvParameter 
- */
-void loraReceiveCallback(void *pvParameter)
+LoRaConfigItem_t *getNodeConfiguration(uint16_t address)
 {
-  HardwareSerial *serial = (HardwareSerial *)pvParameter;
-  uint8_t buffer_uart[LORA_MAX_BUFFER_SIZE];
-  uint32_t stop;
-  while (1) {
-    stop = 0;
-    // Send dump data to LoRa
-    uint8_t buffer_write[3] = {0xc1, 0x00, 0x02};
-    serial->write(buffer_write, 3);
+    LoRaConfigItem_t *configuration = (LoRaConfigItem_t *)malloc(sizeof(LoRaConfigItem_t));
+    configuration->own_address              = address;
+    configuration->baud_rate                = BAUD_9600;
+    configuration->air_data_rate            = BW125K_SF9;
+    configuration->subpacket_size           = SUBPACKET_200_BYTE;
+    configuration->rssi_ambient_noise_flag  = RSSI_AMBIENT_NOISE_ENABLE;
+    configuration->transmitting_power       = TX_POWER_13dBm;
+    configuration->own_channel              = 0x00;
+    configuration->rssi_byte_flag           = RSSI_BYTE_ENABLE;
+    configuration->transmission_method_type = UART_P2P_MODE;
+    configuration->lbt_flag                 = LBT_DISABLE;
+    configuration->wor_cycle                = WOR_2000MS;
+    configuration->encryption_key           = 0;
+    configuration->target_address           = 0xffff;
+    configuration->target_channel           = 0x00;
+    return configuration;
+}
 
-    if (nullptr != getDebugSerial()) {
-      getDebugSerial()->printf("Sending data size: %ld\r\n", 3);
-    }
-    for (uint32_t i = 0; i < 3; ++i) {
-      if (nullptr != getDebugSerial()) {
-        getDebugSerial()->printf("%02X ", buffer_write[i]);
-      }
-    }
-    printlnData();
-    vTaskDelay(pdMS_TO_TICKS(1000));
 
-    uint32_t size = 10;
-    // Reset buffer
-    for (uint32_t i = 0; i < LORA_MAX_BUFFER_SIZE; ++i) {
-      buffer_uart[i] = 0;
-    }
-    // Read data from UART
-    stop = serial->readBytes(buffer_uart, size);
+// Interface
 
-    if (nullptr != getDebugSerial()) {
-      getDebugSerial()->printf("Recieved data size: %ld\r\n", stop);
+void initLora()
+{
+    if (lora_ptr) {
+        free(lora_ptr);
     }
-    for (uint32_t i = 0; i < stop; ++i) {
-      if (nullptr != getDebugSerial()) {
-        getDebugSerial()->printf("%02X ", buffer_write[i]);
-      }
+    lora_ptr = (LoRa_E220_JP *)malloc(sizeof(LoRa_E220_JP));
+    lora_ptr->Init(&Serial1, LORA_DEFAULT_BAUDRATE, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
+}
+
+void deinitLora()
+{
+    if (lora_ptr) free(lora_ptr);
+    if (configuration_ptr)free(configuration_ptr);
+}
+
+void setConfiguration(Role role, uint16_t address)
+{
+    if (role == NODE) 
+    {
+        configuration_ptr = getNodeConfiguration(address);
+    } 
+    else if (role ==GATEWAY) 
+    {
+        configuration_ptr = getGatewayConfiguration(address);
+    } 
+    else
+    {
+        Serial.println("Role unknown");
+        return;
     }
-    printlnData();
-    serial->flush();
-    vTaskDelay(pdMS_TO_TICKS(1000));
-  }
+    while (lora_ptr->InitLoRaSetting(*configuration_ptr) != 0)
+    {
+        Serial.println("Lora init fail!");
+        vTaskDelay(pdMS_TO_TICKS(delay_lora_configure));
+    }
+    Serial.println("Lora init success!");
+}
+
+LoRa_E220_JP* getLoraIns()
+{
+    return lora_ptr;
+}
+
+LoRaConfigItem_t* getConfigLora()
+{
+    return configuration_ptr;
 }
