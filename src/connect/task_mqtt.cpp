@@ -13,7 +13,7 @@ String serializeJsonFormat(String address, String method, String value)
     JsonDocument doc;
 
     doc["Address"] = address;
-    JsonObject data = doc.createNestedObject("data");
+    JsonObject data = doc["data"].to<JsonObject>();
     if (method == "Relay")
     {
         data[method] = value;
