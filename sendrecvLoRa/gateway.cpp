@@ -38,10 +38,10 @@ void sendCorrectDataToGateway()
 {
   JsonDocument jsonDoc;
 
-  const char *devices[] = {"test_2", "test_3", "test_4"};
-  const char *switchStates[] = {"high", "low", "low"};
+  const char *devices[] = {"SmartPole 001", "SmartPole 002"};
+  const char *switchStates[] = {"low", "low"};
 
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 2; i++)
   {
     JsonArray deviceArray = jsonDoc[devices[i]].to<JsonArray>();
     JsonObject statusObj = deviceArray.add<JsonObject>();
@@ -60,16 +60,17 @@ void sendCorrectDataToGateway()
 void setup() {
 
   Serial.begin(UART_DEFAUT_BAUDRATE, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
-  Serial1.begin(9600, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
   initDebugSerial(&Serial);
+
+  // Initialize LoRa
+  initLora();
+  setConfiguration(GATEWAY, 0x0001);
 
   // Initialize Network layer
   connect_init();
   
   // Initialize Device layer
   device_init();
-  initLora();
-  setConfiguration(GATEWAY, 0x0001);
 
   printlnData("ESP32 WROOM-32E Gateway");
   initWatchdogTimer(RESET_WATCHDOG_TIME);

@@ -1,0 +1,121 @@
+@startuml general_processing_flow
+title The Sequence Diagram of System Overview
+
+autonumber
+skinparam sequenceMessageAlign center
+
+actor User
+actor Server
+actor Gateway
+actor Node
+
+participant Wifi
+participant MQTT
+participant Sensor
+participant Light
+participant LoRa
+
+User -> Server: startServer()
+activate Server
+    Server -> Server: updateDashboard()
+    activate Server
+    deactivate Server
+deactivate Server
+
+User -> Gateway: startGateway()
+activate Gateway
+    Gateway -> Wifi ++: connect()
+    return connection_status
+
+    Gateway -> MQTT ++: connect()
+    return connection_status
+
+    Gateway -> LoRa ++: scanActivateNode()
+    return activated_node_address
+
+    Gateway -> Server ++: sendActivatedNode()
+    deactivate Server
+deactivate Gateway
+
+User -> Node: startNode()
+activate Node
+    Node -> Light ++: initialze()
+    return light_status
+
+    Node -> Sensor ++: initialize()
+    return sensor_status
+
+    Node -> LoRa ++: initialize()
+    return lora_status
+
+    Node -> LoRa ++: configNode()
+    return config_status
+
+    Node -> LoRa ++: findGateway()
+    return gateway_address
+
+    alt Gateway is existed
+        Node -> Node ++: chooseNearestNode()
+        deactivate Node
+
+        Node -> LoRa ++: sendACKGateway()
+        deactivate LoRa
+    else Gateway is not existed 
+        Node -> LoRa ++: scanActivateNode()
+        return activated_node_address
+
+        Node -> Node ++: saveNearByNode()
+        deactivate Node
+    end
+deactivate Node
+
+User -> Server: controlLight()
+activate Server
+    Server -> Gateway ++: controlLightAt(node_address)
+        Gateway -> LoRa ++: controlNode(address)
+            LoRa -> Node ++: controlLight()
+            return light_state
+        return light_state
+    return light_state
+deactivate Server
+
+loop Node is active
+    Node -> Node: mainLoop()
+    note left: Execute every \n2 seconds
+    activate Node
+        Node -> Sensor ++: getSensorValue()
+        return sensor_value
+
+        Node -> Light ++: getLightState()
+        return light_state
+
+        Node -> LoRa ++: sendToGateway(node_state)
+        deactivate LoRa
+    deactivate Node
+end
+
+Gateway -> Gateway: waitMessageFromNode()
+note left
+This function is asynchronous.
+It executes immediately
+when a message arrives.
+end note
+activate Gateway
+    LoRa ->> Gateway: node_state
+    Gateway -> Gateway ++: processNodeState()
+    deactivate Gateway
+    Gateway -> Gateway ++: saveNodeState()
+    deactivate Gateway
+deactivate Gateway
+
+loop Gateway is active
+    Gateway -> Gateway: mainLoop()
+    note left: Execute every \n2 seconds
+    activate Gateway
+        Gateway -> Gateway ++: getProcessedNodeState()
+        deactivate Gateway
+        Gateway -> Server ++: sendProcessedNodeState()
+        deactivate Server
+    deactivate Gateway
+end
+@enduml

@@ -13,7 +13,7 @@ String serializeJsonFormat(String address, String method, String value)
     JsonDocument doc;
 
     doc["Address"] = address;
-    JsonObject data = doc["data"].to<JsonObject>();
+    JsonObject data = doc.createNestedObject("data");
     if (method == "Relay")
     {
         data[method] = value;
@@ -38,9 +38,6 @@ void controlRelay(String device, String state)
         Serial.println("LoRa is not initialized or config fail");
         return;
     }
-    // String relay_template = "Relay: ";
-    // String msg = "";
-    // msg = device + " { " + relay_template + state + " }"; // SmartPole 001 { Relay: high/low }
     String address = device.substring(device.indexOf(' '));
     String msg = serializeJsonFormat(address, "Relay", state);
 
