@@ -97,8 +97,8 @@
 #define MQTT_FEED_TEST_DIMMING "BK_SmartPole/Feeds/V1"
 
 // DEFINE WIFI AP
-#define WIFI_SSID "22-08"
-#define WIFI_PASS "414414a2"
+#define WIFI_SSID "Fatcat"
+#define WIFI_PASS "lnss2136"
 
 // DEFINE DIMMING PWM
 #define PWM_CHANNEL 1
@@ -122,6 +122,7 @@
 #define delay_handle_lora_buffer (100)
 #define delay_waiting_ack_process (1000)
 #define delay_dimming_debug (100)
+#define delay_process_buffer (10000)
 
 // DEFINE WATCH DOG
 #define RESET_WATCHDOG_TIME (120) // seconds
@@ -146,4 +147,4 @@ const float LONGITUDE = 106.806;
 const float LATITUDE = 10.8801;
 
 // TOKEN GATEWAY
-#define TOKEN_GATEWAY "axeELNU4fOIwtUmJnPkL"
+#define TOKEN_GATEWAY "I4pP9auSdf6KzYU0PmWV"

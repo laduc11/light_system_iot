@@ -30,6 +30,8 @@
 // #include "../src/utils/on_off_json.h"
 #include "../src/utils/print_debug.h"
 // #include "../src/utils/light_control.h"
+#include "utils/basic_queue.h"
+#include "utils/loraTaskCallback.h"
 
 // include hal file
 #include "../src/hal/watch_dog.h"
