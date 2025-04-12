@@ -23,10 +23,11 @@ NodeStatus deserializeJsonFormat(const String &dataraw)
     node.address = address.toInt();
     node.pwm_val = pwm_val.toInt();
     if (state == "high") // do server gui ve qui dinh high/low
-    node.state = 1;
+        node.state = 1;
     if (state == "low")
-    node.state = 0;
-
+        node.state = 0;
+    if (state == "toggle")
+        node.state = 10;
     Serial.println("Deserialize data success.");
     return node;
 }
