@@ -11,6 +11,7 @@ public:
 private:
     uint8_t count;
     Node *head;
+    SemaphoreHandle_t mutex;
     void remove(int index)
     {
         if (index < 0 || index >= count)
@@ -52,21 +53,30 @@ private:
         count++;
     };
 public:
-    BasicQueue(): count(0), head(nullptr) {}
+    BasicQueue(): count(0), head(nullptr), mutex(xSemaphoreCreateMutex()) {}
     ~BasicQueue() { clear(); }
     T getFirstIdx() { return head->data; }
+    bool isEmpty() { return count == 0; }
     void push_back(T value)
     {
-        insert(count, value);
+        if (xSemaphoreTake(this->mutex, (TickType_t)10) == pdTRUE)
+        {
+            insert(count, value);
+            xSemaphoreGive(mutex);
+        }    
     };
     T pop()
     {
         // get at idx
         T val;
-        if (this->count > 0)
+        if (xSemaphoreTake(this->mutex, (TickType_t)10) == pdTRUE)
         {
-            val = head->data;
-            remove(0);
+            if (this->count > 0)
+            {
+                val = head->data;
+                remove(0);
+            }
+            xSemaphoreGive(this->mutex);
         }
         return val;
     }
