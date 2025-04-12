@@ -32,7 +32,9 @@ void taskWifi(void *pvParameters)
 
     printlnData("[INFO] WiFi Connected!");
     printData("IP Address: ");
-    printlnData(String(WiFi.localIP()));
+    IPAddress ip = WiFi.localIP();
+    Serial.printf("%d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
+    // printlnData(String(WiFi.localIP()));
 
     while (true)
     {
