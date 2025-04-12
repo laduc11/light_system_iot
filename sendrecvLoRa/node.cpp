@@ -123,7 +123,7 @@ void LoRaRecvTask(void *pvParameters)
 void setup()
 {
   // Initialize Pin and Serial
-  Serial1.begin(UART_DEFAUT_BAUDRATE, SERIAL_8N1, UART_LORA_RXD_PIN, UART_LORA_TXD_PIN);
+  Serial.begin(UART_DEFAUT_BAUDRATE, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   initDebugSerial(&Serial);
   pinMode(INBUILD_LED_PIN, OUTPUT);
   digitalWrite(INBUILD_LED_PIN, LOW);   // Turn off the build-in LED
