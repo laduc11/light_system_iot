@@ -4,6 +4,7 @@
 void handleProcessBuffer(void *pvParameters)
 {
   BasicQueue<String> *q = (BasicQueue<String> *)pvParameters;
+  // ngoay nhanh ve xoa sau
   while(1)
   {
     if (!q->isEmpty())
@@ -40,7 +41,20 @@ void handleProcessBuffer(void *pvParameters)
         else
         {
           toggleLED();
-          digitalRead(RELAY_PIN) ? setRelayOff() : setRelayOn();
+          if (digitalRead(RELAY_PIN)) 
+          {
+            setRelayOff();
+            String msg = serializeJsonFormat(String(getConfigLora()->own_address), "Relay", "low");
+            getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)msg.c_str(), msg.length());
+            printlnData("Send message relay LOW to GTW");
+          }
+          else 
+          {
+            setRelayOn();
+            String msg = serializeJsonFormat(String(getConfigLora()->own_address), "Relay", "high");
+            getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)msg.c_str(), msg.length());
+            printlnData("Send message relay HIGH to GTW");
+          }
         }
       } 
     }
@@ -67,14 +81,14 @@ void setup()
 
   // Initialize LoRa
   initLora();
-  setConfiguration(NODE, 0x0002);   // Hard code with address node: 0x0002
+  setConfiguration(NODE, 0x0003);   // Hard code with address node: 0x0003
 
   // Initialize Network layer and Device layer
   device_init();
   BasicQueue<String> *buffer = new BasicQueue<String>();
   // Create task for RTOS
   xTaskCreate(handleProcessBuffer, "handle process buffer", 1024 * 8, buffer, 1, nullptr);
-  xTaskCreate(LoRaRecvTask, "rcv", 1024*4, buffer, 0, nullptr);
+  xTaskCreate(LoRaRecvTask, "rcv", 1024*8, buffer, 0, nullptr);
   // xTaskCreate(readDataDHT20, "DHT20 data reader", 1024 * 4, nullptr, 1, nullptr);
 
   digitalWrite(INBUILD_LED_PIN, HIGH);    // Turn on the LED when set up completely
@@ -85,3 +99,6 @@ void loop()
 {
   // put your main code here, to run repeatedly:
 }
+
+
+// { "SmartPole 001": {"switchstate": "ON"}} - > v1/gateway/attributes 

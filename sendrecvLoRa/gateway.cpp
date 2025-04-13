@@ -41,21 +41,6 @@ void handleProcessBufferS2G(void *pvParameters)
         printlnData(device);
         // Code for sending message to control relay with LoRa to node
         controlRelay(device, params);
-
-        // Publish message to server to synchronous state of device
-        JsonDocument jsonDoc;
-
-        JsonArray deviceArray = jsonDoc[device].to<JsonArray>();
-        JsonObject statusObj = deviceArray.add<JsonObject>();
-        statusObj["switchstate"] = params;
-
-        char buffer[512];
-        serializeJson(jsonDoc, buffer, sizeof(buffer));
-
-        publishData(MQTT_GATEWAY_ATTRIBUTES_TOPIC, buffer);
-
-        printlnData("Updating Relay state for device");
-        printlnData(buffer);
       }
 
       if (method == "setPWM")
@@ -65,13 +50,9 @@ void handleProcessBufferS2G(void *pvParameters)
 
         // Code for sending messag to adjust pwm value with LoRa to node
         controlPwm(device, params);
-        // Publish message to server to synchronous state of device
-
-
-        printlnData("Updating PWM value for device");
       }
     }
-    vTaskDelay(pdMS_TO_TICKS(2000));
+    vTaskDelay(pdMS_TO_TICKS(200));
   }
   vTaskDelete(nullptr);
 }
@@ -81,10 +62,10 @@ void sendCorrectDataToGateway()
 {
   JsonDocument jsonDoc;
 
-  const char *devices[] = {"SmartPole 001", "SmartPole 002"};
-  const char *switchStates[] = {"low", "low"};
+  const char *devices[] = {"SmartPole 001", "SmartPole 002", "SmartPole 003"};
+  const char *switchStates[] = {"low", "low", "low"};
 
-  for (int i = 0; i < 2; i++)
+  for (int i = 0; i < 3; i++)
   {
     JsonArray deviceArray = jsonDoc[devices[i]].to<JsonArray>();
     JsonObject statusObj = deviceArray.add<JsonObject>();
@@ -100,6 +81,57 @@ void sendCorrectDataToGateway()
   printlnData(buffer);
 }
 
+void handleProcessBuffer(void *pvParameters)
+{
+  BasicQueue<String> *q = (BasicQueue<String> *)pvParameters;
+  // ngoay nhanh ve xoa sau
+  while(1)
+  {
+    if (!q->isEmpty())
+    {
+      NodeStatus node;
+      node = deserializeJsonFormat(q->pop());
+
+      if (node.pwm_val >= 0) 
+      {
+        // Handle dimming control
+        // pwm_val = -1: Unchanged
+        pwm_set_duty(node.pwm_val);
+      }
+      else 
+      {
+        // Handle Relay control
+        // node.state == -1: Unchanged
+        if (node.state == 1) 
+        {
+          JsonDocument doc;
+          char pole_addr[15];
+          sprintf(pole_addr, "SmartPole %03x", node.address);
+          JsonObject data = doc[String(pole_addr)].to<JsonObject>();
+          data["switchstate"] = "ON";
+          String msg;
+          serializeJson(doc, msg);
+          publishData(MQTT_GATEWAY_ATTRIBUTES_TOPIC, msg);
+          printlnData("Updating Relay state for device");
+        }
+        else if (node.state == 0)
+        {
+          JsonDocument doc;
+          char pole_addr[15];
+          sprintf(pole_addr, "SmartPole %03x", node.address);
+          JsonObject data = doc[String(pole_addr)].to<JsonObject>();
+          data["switchstate"] = "OFF";
+          String msg;
+          serializeJson(doc, msg);
+          publishData(MQTT_GATEWAY_ATTRIBUTES_TOPIC, msg);
+          printlnData("Updating Relay state for device");
+        }
+      } 
+    }
+    vTaskDelay(pdMS_TO_TICKS(delay_process_buffer));
+  }
+  vTaskDelete(nullptr);
+}
 
 void setup() {
 
@@ -127,7 +159,8 @@ void setup() {
   sendCorrectDataToGateway();
 
   // Create Task
-  xTaskCreate(handleProcessBufferS2G, "abc" , 1024*4, buffer_S2G, 1, nullptr);
+  xTaskCreate(handleProcessBufferS2G, "handle message from server" , 1024*4, buffer_S2G, 1, nullptr);
+  xTaskCreate(handleProcessBuffer, "handle message from node" , 1024*4, buffer_N2G, 1, nullptr);
   xTaskCreate(LoRaRecvTask, "rcv", 1024*4, buffer_N2G, 0, nullptr);
   xTaskCreate(taskLedBlink, "Task Blinky Led", 1024, nullptr, 2, nullptr);
 }
