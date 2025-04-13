@@ -71,7 +71,7 @@ void LoRaRecvTask(void *pvParameters) {
         Serial.println();
         Serial.printf("RSSI: %d dBm\n", data.rssi);
         Serial.flush();
-        q->push_back(data_buffer);
+        if (data.rssi != -256 || data.rssi != -1) q->push_back(data_buffer);
       }
       vTaskDelay(pdMS_TO_TICKS(delay_rev_lora_process));
     }
