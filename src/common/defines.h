@@ -88,13 +88,15 @@
 
 #define MQTT_FEED_NOTHING ""
 // #define MQTT_FEED_POLE_02 "BK_SmartPole/feeds/V20"
-#define MQTT_SENDING_VALUE "v1/gateway/telemetry"
+#define MQTT_GATEWAY_TELEMETRY_TOPIC "v1/gateway/telemetry"
+#define MQTT_GATEWAY_ATTRIBUTES_TOPIC "v1/gateway/attributes"
 #define MQTT_REQUEST_TOPIC "v1/devices/me/rpc/request/+"
 #define MQTT_FEED_TEST_LORA "BK_SmartPole/feeds/V5"
 #define MQTT_FEED_TEST_LORA_SEND "BK_SmartPole/feeds/V4"
 #define MQTT_FEED_TEST_MQTT "BK_SmartPole/feeds/V3"
 #define MQTT_FEED_TEST_LORA_RECV "BK_SmartPole/feeds/V2"
 #define MQTT_FEED_TEST_DIMMING "BK_SmartPole/Feeds/V1"
+
 
 // DEFINE WIFI AP
 #define WIFI_SSID "Fatcat"
@@ -122,7 +124,7 @@
 #define delay_handle_lora_buffer (100)
 #define delay_waiting_ack_process (1000)
 #define delay_dimming_debug (100)
-#define delay_process_buffer (10000)
+#define delay_process_buffer (500)
 
 // DEFINE WATCH DOG
 #define RESET_WATCHDOG_TIME (120) // seconds
