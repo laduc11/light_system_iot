@@ -1,5 +1,37 @@
 #include "loraTaskCallback.h"
 
+Pole::Pole(uint16_t address = 0, float temp = 0.0, float humi = 0.0, float intensity = 0.0)
+{
+  this->address = address;
+  this->humi = humi;
+  this->temp = temp;
+  this->intensity = intensity;
+}
+void Pole::setPole(uint16_t address, float temp, float humi, float intensity)
+{
+  this->address = address;
+  this->humi = humi;
+  this->temp = temp;
+  this->intensity = intensity;
+}
+String Pole::serializeJsonPKG()
+{
+    JsonDocument doc;
+    doc["header"] = "period";
+    JsonObject data = doc["Pole_Detail"].to<JsonObject>();
+    data["address"] = this->address;
+    data["temp"] = String(this->temp, 2);
+    data["humidity"] = String(this->humi, 2);
+    data["intensity"] = String(this->intensity, 2);
+
+    String pkg;
+    serializeJson(doc, pkg);
+    return pkg;
+}
+void Pole::deserializeJsonPKG(String msg)
+{
+    return;
+}
 NodeStatus deserializeJsonFormat(const String &dataraw)
 {
     NodeStatus node;

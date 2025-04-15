@@ -24,20 +24,10 @@ public:
   float temp;
   float humi;
   float intensity;
-  Pole(uint16_t address = 0, float temp = 0.0, float humi = 0.0, float intensity = 0.0)
-  {
-    this->address = address;
-    this->humi = humi;
-    this->temp = temp;
-    this->intensity = intensity;
-  }
-  void setPole(uint16_t address, float temp, float humi, float intensity)
-  {
-    this->address = address;
-    this->humi = humi;
-    this->temp = temp;
-    this->intensity = intensity;
-  }
+  Pole(uint16_t address = 0, float temp = 0.0, float humi = 0.0, float intensity = 0.0);
+  void setPole(uint16_t address, float temp, float humi, float intensity);
+  String serializeJsonPKG();
+  void deserializeJsonPKG(String msg);
 };
 
 // AT NODE AFTER RECEIVE FROM GATEWAY
