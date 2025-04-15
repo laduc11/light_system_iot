@@ -4,8 +4,7 @@
 void handleProcessBuffer(void *pvParameters)
 {
   BasicQueue<String> *q = (BasicQueue<String> *)pvParameters;
-  // ngoay nhanh ve xoa sau
-  while(1)
+  while (1)
   {
     if (!q->isEmpty())
     {
@@ -18,17 +17,20 @@ void handleProcessBuffer(void *pvParameters)
         continue;
       }
 
-      if (node.pwm_val >= 0) 
+      if (node.pwm_val >= 0)
       {
         // Handle dimming control
         // pwm_val = -1: Unchanged
         pwm_set_duty(node.pwm_val);
+        String msg = serializeJsonFormat(String(getConfigLora()->own_address), "PWM", String(node.pwm_val));
+        getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)msg.c_str(), msg.length());
+        printlnData("Send message confirm set pwm to GTW");
       }
-      else 
+      else
       {
         // Handle Relay control
         // node.state == -1: Unchanged
-        if (node.state == 1) 
+        if (node.state == 1)
         {
           setRelayOn();
           digitalWrite(INBUILD_LED_PIN, HIGH);
@@ -41,14 +43,14 @@ void handleProcessBuffer(void *pvParameters)
         else
         {
           toggleLED();
-          if (digitalRead(RELAY_PIN)) 
+          if (digitalRead(RELAY_PIN))
           {
             setRelayOff();
             String msg = serializeJsonFormat(String(getConfigLora()->own_address), "Relay", "low");
             getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)msg.c_str(), msg.length());
             printlnData("Send message relay LOW to GTW");
           }
-          else 
+          else
           {
             setRelayOn();
             String msg = serializeJsonFormat(String(getConfigLora()->own_address), "Relay", "high");
@@ -56,13 +58,12 @@ void handleProcessBuffer(void *pvParameters)
             printlnData("Send message relay HIGH to GTW");
           }
         }
-      } 
+      }
     }
     vTaskDelay(pdMS_TO_TICKS(delay_process_buffer));
   }
   vTaskDelete(nullptr);
 }
-
 
 /* Setup function */
 void setup()
@@ -71,7 +72,7 @@ void setup()
   Serial.begin(UART_DEFAUT_BAUDRATE, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   initDebugSerial(&Serial);
   pinMode(INBUILD_LED_PIN, OUTPUT);
-  digitalWrite(INBUILD_LED_PIN, LOW);   // Turn off the build-in LED
+  digitalWrite(INBUILD_LED_PIN, LOW); // Turn off the build-in LED
 
   // Initialize watchdog
   initWatchdogTimer(RESET_WATCHDOG_TIME);
@@ -81,17 +82,17 @@ void setup()
 
   // Initialize LoRa
   initLora();
-  setConfiguration(NODE, 0x0003);   // Hard code with address node: 0x0003
+  setConfiguration(NODE, 0x0003); // Hard code with address node: 0x0003
 
   // Initialize Network layer and Device layer
   device_init();
   BasicQueue<String> *buffer = new BasicQueue<String>();
   // Create task for RTOS
   xTaskCreate(handleProcessBuffer, "handle process buffer", 1024 * 8, buffer, 1, nullptr);
-  xTaskCreate(LoRaRecvTask, "rcv", 1024*8, buffer, 0, nullptr);
+  xTaskCreate(LoRaRecvTask, "rcv", 1024 * 8, buffer, 0, nullptr);
   // xTaskCreate(readDataDHT20, "DHT20 data reader", 1024 * 4, nullptr, 1, nullptr);
 
-  digitalWrite(INBUILD_LED_PIN, HIGH);    // Turn on the LED when set up completely
+  digitalWrite(INBUILD_LED_PIN, HIGH); // Turn on the LED when set up completely
 }
 
 /* Loop function */
@@ -100,5 +101,4 @@ void loop()
   // put your main code here, to run repeatedly:
 }
 
-
-// { "SmartPole 001": {"switchstate": "ON"}} - > v1/gateway/attributes 
+// { "SmartPole 001": {"switchstate": "ON"}} - > v1/gateway/attributes

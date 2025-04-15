@@ -85,24 +85,33 @@ void handleProcessBuffer(void *pvParameters)
 {
   BasicQueue<String> *q = (BasicQueue<String> *)pvParameters;
   // ngoay nhanh ve xoa sau
-  while(1)
+  while (1)
   {
     if (!q->isEmpty())
     {
       NodeStatus node;
       node = deserializeJsonFormat(q->pop());
 
-      if (node.pwm_val >= 0) 
+      if (node.pwm_val >= 0)
       {
         // Handle dimming control
         // pwm_val = -1: Unchanged
-        pwm_set_duty(node.pwm_val);
+        JsonDocument doc;
+        char pole_addr[15];
+        sprintf(pole_addr, "SmartPole %03x", node.address);
+        JsonArray telemetryArray = doc[pole_addr].to<JsonArray>();
+        JsonObject telemetryObject = telemetryArray.createNestedObject();
+        telemetryObject["pwm_value"] = String(node.pwm_val);
+        String msg;
+        serializeJson(doc, msg);
+        publishData(MQTT_GATEWAY_TELEMETRY_TOPIC, msg);
+        printlnData("Updating PWM to telemetry for device");
       }
-      else 
+      else
       {
         // Handle Relay control
         // node.state == -1: Unchanged
-        if (node.state == 1) 
+        if (node.state == 1)
         {
           JsonDocument doc;
           char pole_addr[15];
@@ -126,14 +135,15 @@ void handleProcessBuffer(void *pvParameters)
           publishData(MQTT_GATEWAY_ATTRIBUTES_TOPIC, msg);
           printlnData("Updating Relay state for device");
         }
-      } 
+      }
     }
     vTaskDelay(pdMS_TO_TICKS(delay_process_buffer));
   }
   vTaskDelete(nullptr);
 }
 
-void setup() {
+void setup()
+{
 
   Serial.begin(UART_DEFAUT_BAUDRATE, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   initDebugSerial(&Serial);
@@ -144,12 +154,12 @@ void setup() {
 
   // Initialize Network layer
   connect_init();
-  
+
   // Initialize Device layer
   device_init();
 
   // Init receive queue
-  BasicQueue<String> * buffer_N2G = new BasicQueue<String>();
+  BasicQueue<String> *buffer_N2G = new BasicQueue<String>();
 
   printlnData("ESP32 WROOM-32E Gateway");
   initWatchdogTimer(RESET_WATCHDOG_TIME);
@@ -159,12 +169,13 @@ void setup() {
   sendCorrectDataToGateway();
 
   // Create Task
-  xTaskCreate(handleProcessBufferS2G, "handle message from server" , 1024*4, buffer_S2G, 1, nullptr);
-  xTaskCreate(handleProcessBuffer, "handle message from node" , 1024*4, buffer_N2G, 1, nullptr);
-  xTaskCreate(LoRaRecvTask, "rcv", 1024*4, buffer_N2G, 0, nullptr);
+  xTaskCreate(handleProcessBufferS2G, "handle message from server", 1024 * 4, buffer_S2G, 1, nullptr);
+  xTaskCreate(handleProcessBuffer, "handle message from node", 1024 * 4, buffer_N2G, 1, nullptr);
+  xTaskCreate(LoRaRecvTask, "rcv", 1024 * 4, buffer_N2G, 0, nullptr);
   xTaskCreate(taskLedBlink, "Task Blinky Led", 1024, nullptr, 2, nullptr);
 }
 
-void loop() {
+void loop()
+{
   // put your main code here, to run repeatedly:
 }
