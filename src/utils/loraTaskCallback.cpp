@@ -1,5 +1,11 @@
 #include "loraTaskCallback.h"
-
+Pole::Pole()
+{
+    this->address = 0;
+    this->humi = 0.0;
+    this->temp = 0.0;
+    this->intensity = 0.0;
+}
 Pole::Pole(uint16_t address = 0, float temp = 0.0, float humi = 0.0, float intensity = 0.0)
 {
   this->address = address;
@@ -14,12 +20,20 @@ void Pole::setPole(uint16_t address, float temp, float humi, float intensity)
   this->temp = temp;
   this->intensity = intensity;
 }
+void Pole::setPole(const JsonObject &body)
+{
+    this->address = body["Address"];
+    this->temp = body["temp"];
+    this->humi = body["humidity"];
+    this->intensity = body["intensity"];
+}
 String Pole::serializeJsonPKG()
 {
+    // {"Header":"PERIOD_SS","Body":{"Address": "1","temp":"10.20","humidity;":"10.00","intensity":"20.00"}}
     JsonDocument doc;
-    doc["header"] = "period";
-    JsonObject data = doc["Pole_Detail"].to<JsonObject>();
-    data["address"] = this->address;
+    doc["Header"] = "PERIOD_SS";
+    JsonObject data = doc["Body"].to<JsonObject>();
+    data["Address"] = this->address;
     data["temp"] = String(this->temp, 2);
     data["humidity"] = String(this->humi, 2);
     data["intensity"] = String(this->intensity, 2);
@@ -30,8 +44,21 @@ String Pole::serializeJsonPKG()
 }
 void Pole::deserializeJsonPKG(String msg)
 {
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, msg);
+
+    if (error)
+    {
+        printData("[ERROR] deserializeJson() failed: ");
+        printlnData(error.f_str());
+        return;
+    }
+
+    JsonObject body = doc["Body"].as<JsonObject>();
+    this->setPole(body);
     return;
 }
+
 NodeStatus deserializeJsonFormat(const String &dataraw)
 {
     NodeStatus node;
@@ -45,9 +72,10 @@ NodeStatus deserializeJsonFormat(const String &dataraw)
         return node;
     }
 
+    JsonObject body = doc["Body"].as<JsonObject>();
     // get value from Json message
-    String address = doc["Address"].as<String>(); // _001 -> 1
-    JsonObject data = doc["data"].as<JsonObject>();
+    String address = body["Address"].as<String>(); // _001 -> 1
+    JsonObject data = body["data"].as<JsonObject>();
     String state = data["Relay"].as<String>();
     String pwm_val = data["PWM"].as<String>();
     
@@ -66,10 +94,12 @@ NodeStatus deserializeJsonFormat(const String &dataraw)
 
 String serializeJsonFormat(String address, String method, String value)
 {
+    // {"Header":"ACK_STT", "Body":{"Address": "1","data":{"Relay":"unchanged", "PWM":"50"}}}
     JsonDocument doc;
-
-    doc["Address"] = address;
-    JsonObject data = doc["data"].to<JsonObject>();
+    doc["Header"] = "ACK_STT";
+    JsonObject body = doc["Body"].to<JsonObject>();
+    body["Address"] = address;
+    JsonObject data = body["data"].to<JsonObject>();
     if (method == "Relay")
     {
         data[method] = value;

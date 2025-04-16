@@ -81,6 +81,61 @@ void sendCorrectDataToGateway()
   printlnData(buffer);
 }
 
+void processNodePkg(const NodeStatus &node)
+{
+  if (node.pwm_val >= 0)
+  {
+    // Handle dimming control
+    // pwm_val = -1: Unchanged
+    JsonDocument doc;
+    char pole_addr[15];
+    sprintf(pole_addr, "SmartPole %03x", node.address);
+    JsonArray telemetryArray = doc[pole_addr].to<JsonArray>();
+    JsonObject telemetryObject = telemetryArray.createNestedObject();
+    telemetryObject["pwm_value"] = String(node.pwm_val);
+    String msg;
+    serializeJson(doc, msg);
+    publishData(MQTT_GATEWAY_TELEMETRY_TOPIC, msg);
+    printlnData("Updating PWM to telemetry for device");
+  }
+  else
+  {
+    // Handle Relay control
+    // node.state == -1: Unchanged
+    if (node.state == 1)
+    {
+      JsonDocument doc;
+      char pole_addr[15];
+      sprintf(pole_addr, "SmartPole %03x", node.address);
+      JsonObject data = doc[String(pole_addr)].to<JsonObject>();
+      data["switchstate"] = "ON";
+      String msg;
+      serializeJson(doc, msg);
+      publishData(MQTT_GATEWAY_ATTRIBUTES_TOPIC, msg);
+      printlnData("Updating Relay state for device");
+    }
+    else if (node.state == 0)
+    {
+      JsonDocument doc;
+      char pole_addr[15];
+      sprintf(pole_addr, "SmartPole %03x", node.address);
+      JsonObject data = doc[String(pole_addr)].to<JsonObject>();
+      data["switchstate"] = "OFF";
+      String msg;
+      serializeJson(doc, msg);
+      publishData(MQTT_GATEWAY_ATTRIBUTES_TOPIC, msg);
+      printlnData("Updating Relay state for device");
+    }
+  }
+}
+
+
+void processPolePkg(const Pole &pole)
+{
+  
+  return;
+}
+
 void handleProcessBuffer(void *pvParameters)
 {
   BasicQueue<String> *q = (BasicQueue<String> *)pvParameters;
@@ -89,52 +144,32 @@ void handleProcessBuffer(void *pvParameters)
   {
     if (!q->isEmpty())
     {
-      NodeStatus node;
-      node = deserializeJsonFormat(q->pop());
-
-      if (node.pwm_val >= 0)
+      String msg = q->pop();
+      JsonDocument doc;
+      DeserializationError error = deserializeJson(doc, msg);
+      if (error)
       {
-        // Handle dimming control
-        // pwm_val = -1: Unchanged
-        JsonDocument doc;
-        char pole_addr[15];
-        sprintf(pole_addr, "SmartPole %03x", node.address);
-        JsonArray telemetryArray = doc[pole_addr].to<JsonArray>();
-        JsonObject telemetryObject = telemetryArray.createNestedObject();
-        telemetryObject["pwm_value"] = String(node.pwm_val);
-        String msg;
-        serializeJson(doc, msg);
-        publishData(MQTT_GATEWAY_TELEMETRY_TOPIC, msg);
-        printlnData("Updating PWM to telemetry for device");
+        printData("[ERROR] deserializeJson() failed: ");
+        printlnData(error.f_str());
+        continue;
       }
-      else
+
+      String header = doc["Header"].as<String>();
+      if (header == "ACK_STT")
       {
-        // Handle Relay control
-        // node.state == -1: Unchanged
-        if (node.state == 1)
-        {
-          JsonDocument doc;
-          char pole_addr[15];
-          sprintf(pole_addr, "SmartPole %03x", node.address);
-          JsonObject data = doc[String(pole_addr)].to<JsonObject>();
-          data["switchstate"] = "ON";
-          String msg;
-          serializeJson(doc, msg);
-          publishData(MQTT_GATEWAY_ATTRIBUTES_TOPIC, msg);
-          printlnData("Updating Relay state for device");
-        }
-        else if (node.state == 0)
-        {
-          JsonDocument doc;
-          char pole_addr[15];
-          sprintf(pole_addr, "SmartPole %03x", node.address);
-          JsonObject data = doc[String(pole_addr)].to<JsonObject>();
-          data["switchstate"] = "OFF";
-          String msg;
-          serializeJson(doc, msg);
-          publishData(MQTT_GATEWAY_ATTRIBUTES_TOPIC, msg);
-          printlnData("Updating Relay state for device");
-        }
+        printlnData("Start processing Node Command Package");
+        NodeStatus node = deserializeJsonFormat(msg);
+        processNodePkg(node);
+      }
+      else if (header == "PERIOD_SS")
+      {
+        printlnData("Start processing Pole Sensor Package");
+        Pole pole;
+        pole.deserializeJsonPKG(msg);
+        processPolePkg(pole);
+      }
+      else {
+        printlnData("Wrong header package.");
       }
     }
     vTaskDelay(pdMS_TO_TICKS(delay_process_buffer));
