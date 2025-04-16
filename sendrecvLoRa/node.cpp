@@ -68,13 +68,17 @@ void handleProcessBuffer(void *pvParameters)
 // Dinh ky gui ve gateway gia tri cam bien
 void updatePeriodPole(void *pvParameters)
 {
-  Pole pole;
-  pole.address = getConfigLora()->own_address;
-  getDataDHT20(pole.humi, pole.temp);
-  // pole.intensity = analogRead(A10);
-  pole.intensity = 50.00;
-  String pkg = pole.serializeJsonPKG();
-  getLoraIns()->SendFrame(*(getConfigLora()),(uint8_t*) pkg.c_str(), pkg.length());
+  while (1)
+  {
+    Pole pole;
+    pole.address = getConfigLora()->own_address;
+    getDataDHT20(pole.humi, pole.temp);
+    // pole.intensity = analogRead(A10);
+    pole.intensity = 50.00;
+    String pkg = pole.serializeJsonPKG();
+    getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)pkg.c_str(), pkg.length());
+    delay(delay_sending_period_value);
+  }
 }
 
 /* Setup function */
@@ -103,7 +107,7 @@ void setup()
   xTaskCreate(handleProcessBuffer, "handle process buffer", 1024 * 8, buffer, 1, nullptr);
   xTaskCreate(LoRaRecvTask, "rcv", 1024 * 8, buffer, 0, nullptr);
   xTaskCreate(readDataDHT20, "DHT20 data reader", 1024 * 4, nullptr, 1, nullptr);
-
+  xTaskCreate(updatePeriodPole, "Update period sensor val", 1024 * 10, nullptr, 0, nullptr);
   digitalWrite(INBUILD_LED_PIN, HIGH); // Turn on the LED when set up completely
 }
 

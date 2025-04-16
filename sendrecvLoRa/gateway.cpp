@@ -81,6 +81,7 @@ void sendCorrectDataToGateway()
   printlnData(buffer);
 }
 
+// Publish sensor value, from lora -> gateway -> server
 void processNodePkg(const NodeStatus &node)
 {
   if (node.pwm_val >= 0)
@@ -129,10 +130,20 @@ void processNodePkg(const NodeStatus &node)
   }
 }
 
-
 void processPolePkg(const Pole &pole)
 {
-  
+  JsonDocument doc;
+  char pole_addr[15];
+  sprintf(pole_addr, "SmartPole %03x", pole.address);
+  JsonArray telemetryArray = doc[pole_addr].to<JsonArray>();
+  JsonObject telemetryObject = telemetryArray.createNestedObject();
+  telemetryObject["humidity"] = String(pole.humi);
+  telemetryObject["intensity"] = String(pole.intensity);
+  telemetryObject["temperature"] = String(pole.temp);
+  String msg;
+  serializeJson(doc, msg);
+  publishData(MQTT_GATEWAY_TELEMETRY_TOPIC, msg);
+  printlnData("Updating Sensor Value to telemetry for device");
   return;
 }
 
@@ -168,7 +179,8 @@ void handleProcessBuffer(void *pvParameters)
         pole.deserializeJsonPKG(msg);
         processPolePkg(pole);
       }
-      else {
+      else
+      {
         printlnData("Wrong header package.");
       }
     }

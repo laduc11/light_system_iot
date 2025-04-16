@@ -1,24 +1,18 @@
 #include "loraTaskCallback.h"
-Pole::Pole()
+
+Pole::Pole(uint16_t address, float temp, float humi, float intensity)
 {
-    this->address = 0;
-    this->humi = 0.0;
-    this->temp = 0.0;
-    this->intensity = 0.0;
-}
-Pole::Pole(uint16_t address = 0, float temp = 0.0, float humi = 0.0, float intensity = 0.0)
-{
-  this->address = address;
-  this->humi = humi;
-  this->temp = temp;
-  this->intensity = intensity;
+    this->address = address;
+    this->humi = humi;
+    this->temp = temp;
+    this->intensity = intensity;
 }
 void Pole::setPole(uint16_t address, float temp, float humi, float intensity)
 {
-  this->address = address;
-  this->humi = humi;
-  this->temp = temp;
-  this->intensity = intensity;
+    this->address = address;
+    this->humi = humi;
+    this->temp = temp;
+    this->intensity = intensity;
 }
 void Pole::setPole(const JsonObject &body)
 {
@@ -78,7 +72,7 @@ NodeStatus deserializeJsonFormat(const String &dataraw)
     JsonObject data = body["data"].as<JsonObject>();
     String state = data["Relay"].as<String>();
     String pwm_val = data["PWM"].as<String>();
-    
+
     // Pass value to Node's attributes
     node.address = address.toInt();
     node.pwm_val = pwm_val.toInt();
@@ -110,34 +104,37 @@ String serializeJsonFormat(String address, String method, String value)
         data[method] = value;
         data["Relay"] = "unchanged";
     }
-    else return "";
+    else
+        return "";
     String jsonStr;
     serializeJson(doc, jsonStr);
 
     return jsonStr;
 }
 
-void LoRaRecvTask(void *pvParameters) {
+void LoRaRecvTask(void *pvParameters)
+{
     BasicQueue<String> *q = (BasicQueue<String> *)pvParameters;
     RecvFrame_t data;
     String data_buffer;
     while (1)
-    { 
-      if (getLoraIns()->RecieveFrame(&data) == 0) 
-      {
-        data_buffer = String(data.recv_data, data.recv_data_len);
-        Serial.print("Data size: ");
-        Serial.println(data.recv_data_len);
-        Serial.print(data_buffer);
-          
-        Serial.println();
-        Serial.printf("RSSI: %d dBm\n", data.rssi);
-        Serial.flush();
-        if (data.rssi != -256 || data.rssi != -1) q->push_back(data_buffer);
-      }
-      vTaskDelay(pdMS_TO_TICKS(delay_rev_lora_process));
+    {
+        if (getLoraIns()->RecieveFrame(&data) == 0)
+        {
+            data_buffer = String(data.recv_data, data.recv_data_len);
+            Serial.print("Data size: ");
+            Serial.println(data.recv_data_len);
+            Serial.print(data_buffer);
+
+            Serial.println();
+            Serial.printf("RSSI: %d dBm\n", data.rssi);
+            Serial.flush();
+            if (data.rssi != -256 || data.rssi != -1)
+                q->push_back(data_buffer);
+        }
+        vTaskDelay(pdMS_TO_TICKS(delay_rev_lora_process));
     }
-  }
+}
 
 void controlRelay(String device, String state)
 {
