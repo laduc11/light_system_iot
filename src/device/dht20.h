@@ -6,6 +6,6 @@
 void initDHT20();
 void deinitDHT20();
 void readDataDHT20(void *pvParameter);
-inline void getDataDHT20(float &humidity, float &temperature);
+void getDataDHT20(float &humidity, float &temperature);
 
-#endif  // DHT20_H
+#endif // DHT20_H

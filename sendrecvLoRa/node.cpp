@@ -42,9 +42,9 @@ void handleProcessBuffer(void *pvParameters)
         }
         else
         {
-          toggleLED();
           if (digitalRead(RELAY_PIN))
           {
+            digitalWrite(INBUILD_LED_PIN, LOW);
             setRelayOff();
             String msg = serializeJsonFormat(String(getConfigLora()->own_address), "Relay", "low");
             if (getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)msg.c_str(), msg.length()) == 0)
@@ -52,6 +52,7 @@ void handleProcessBuffer(void *pvParameters)
           }
           else
           {
+            digitalWrite(INBUILD_LED_PIN, HIGH);
             setRelayOn();
             String msg = serializeJsonFormat(String(getConfigLora()->own_address), "Relay", "high");
             if (getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)msg.c_str(), msg.length()) == 0)
@@ -72,10 +73,10 @@ void updatePeriodPole(void *pvParameters)
   {
     Pole pole;
     pole.address = getConfigLora()->own_address;
-    // getDataDHT20(pole.humi, pole.temp);
-    pole.humi = (rand() % 100) * 1.0;
-    pole.temp = (rand() % 100) *1.0;
-    // pole.intensity = analogRead(A10);
+    getDataDHT20(pole.humi, pole.temp);
+    // pole.humi = (rand() % 100) * 1.0;
+    // pole.temp = (rand() % 100) *1.0;
+    // pole.intensity = analogRead(A10);`
     pole.intensity = 50.00;
     String pkg = pole.serializeJsonPKG();
     if (getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)pkg.c_str(), pkg.length()) == 0)
@@ -83,7 +84,8 @@ void updatePeriodPole(void *pvParameters)
       Serial.printf("Upload Pole value to GW: Humid: %f, Temp: %f", pole.humi, pole.temp);
       Serial.println();
     }
-    else Serial.println("Upload fail.");
+    else
+      Serial.println("Upload fail.");
     delay(delay_sending_period_value);
   }
 }
@@ -101,11 +103,11 @@ void setup()
   initWatchdogTimer(RESET_WATCHDOG_TIME);
 
   // Initialize DHT20
-  // initDHT20();
+  initDHT20();
 
   // Initialize LoRa
   initLora();
-  setConfiguration(NODE, 0x0002); // Hard code with address node: 0x0003
+  setConfiguration(NODE, 0x0003); // Hard code with address node: 0x0003
 
   // Initialize Network layer and Device layer
   device_init();
@@ -113,7 +115,7 @@ void setup()
   // Create task for RTOS
   xTaskCreate(handleProcessBuffer, "handle process buffer", 1024 * 8, buffer, 1, nullptr);
   xTaskCreate(LoRaRecvTask, "rcv", 1024 * 8, buffer, 0, nullptr);
-  // xTaskCreate(readDataDHT20, "DHT20 data reader", 1024 * 4, nullptr, 1, nullptr);
+  xTaskCreate(readDataDHT20, "DHT20 data reader", 1024 * 4, nullptr, 1, nullptr);
   xTaskCreate(updatePeriodPole, "Update period sensor val", 1024 * 10, nullptr, 5, nullptr);
   digitalWrite(INBUILD_LED_PIN, HIGH); // Turn on the LED when set up completely
 }
