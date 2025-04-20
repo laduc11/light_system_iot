@@ -1,7 +1,8 @@
 #include <globals.h>
 
 #define MAX_RETRIES 5
-#define INTERVAL_TIME 2000 // unit: ms
+#define INTERVAL_TIME 3000 // unit: ms
+#define delay_process_send_dataN2G 10 //unit: ms
 
 RecvFrame_t data;
 String data_buffer;
@@ -11,6 +12,7 @@ uint32_t start_time;
 // ACK attributes
 uint8_t counter_wait;
 
+String cmd_msg;
 void handleProcessBufferS2G(void *pvParameters)
 {
   BasicQueue<String> *q = (BasicQueue<String> *)pvParameters;
@@ -42,13 +44,12 @@ void handleProcessBufferS2G(void *pvParameters)
       printData("Params: ");
       printlnData(params);
       //-------------------
-
       if (method == "setState")
       {
         printData("Check device: ");
         printlnData(device);
         // Code for sending message to control relay with LoRa to node
-        controlRelay(device, params);
+        controlRelay(device, params, cmd_msg);
         if (start_time == 0)
         {
           start_time = millis();
@@ -61,7 +62,7 @@ void handleProcessBufferS2G(void *pvParameters)
         printlnData(device);
 
         // Code for sending messag to adjust pwm value with LoRa to node
-        controlPwm(device, params);
+        controlPwm(device, params, cmd_msg);
         if (start_time == 0)
         {
           start_time = millis();
@@ -71,6 +72,32 @@ void handleProcessBufferS2G(void *pvParameters)
     vTaskDelay(pdMS_TO_TICKS(200));
   }
   vTaskDelete(nullptr);
+}
+
+void retryCommandPkg(void* pvParameters)
+{
+  while (1)
+  {
+    if (start_time > 0)
+    {
+      uint32_t duration = millis() - start_time;
+      if (duration > INTERVAL_TIME)
+      {
+        counter_wait++;
+        start_time = millis();
+        // Send the control message again
+        get_bufferG2N()->push_back(cmd_msg);
+      }
+    }
+    if (counter_wait >= MAX_RETRIES)
+    {
+      printlnData("Timeout for ACK message");
+      counter_wait = 0;
+      start_time = 0;
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(INTERVAL_TIME / 4));
+  }
 }
 
 // Function to send fake data to Sever CoreIOT
@@ -163,7 +190,7 @@ void processPolePkg(const Pole &pole)
   return;
 }
 
-void handleProcessBuffer(void *pvParameters)
+void handleProcessBufferN2G(void *pvParameters)
 {
   BasicQueue<String> *q = (BasicQueue<String> *)pvParameters;
   // ngoay nhanh ve xoa sau
@@ -215,6 +242,21 @@ void handleProcessBuffer(void *pvParameters)
   vTaskDelete(nullptr);
 }
 
+void handleProcessBufferG2N(void *pvParameters)
+{
+  while(1)
+  {
+    if (!get_bufferG2N()->isEmpty())
+    {
+      sendLora(get_bufferG2N()->pop());
+    }
+    else
+    {
+      vTaskDelay(pdMS_TO_TICKS(delay_process_send_dataN2G));
+    }
+  }
+}
+
 void setup()
 {
   start_time = 0;
@@ -241,12 +283,14 @@ void setup()
 
   vTaskDelay(pdMS_TO_TICKS(5000));
 
-  sendCorrectDataToGateway();
+  // sendCorrectDataToGateway();
 
   // Create Task
-  xTaskCreate(handleProcessBufferS2G, "handle message from server", 1024 * 4, buffer_S2G, 1, nullptr);
-  xTaskCreate(handleProcessBuffer, "handle message from node", 1024 * 4, buffer_N2G, 1, nullptr);
   xTaskCreate(LoRaRecvTask, "rcv", 1024 * 4, buffer_N2G, 0, nullptr);
+  xTaskCreate(handleProcessBufferS2G, "handle message from server", 1024 * 4, buffer_S2G, 1, nullptr);
+  xTaskCreate(handleProcessBufferN2G, "handle message from node", 1024 * 4, buffer_N2G, 1, nullptr);
+  xTaskCreate(handleProcessBufferG2N, "handle message from Gateway to Node", 1024 * 4, nullptr, 1, nullptr);
+  xTaskCreate(retryCommandPkg, "retry send Node CMD PKG", 1024 * 4, nullptr, 1, nullptr);
   xTaskCreate(taskLedBlink, "Task Blinky Led", 1024, nullptr, 2, nullptr);
 }
 
@@ -255,24 +299,4 @@ void loop()
   // put your main code here, to run repeatedly:
 
   // Need to create the task instead of main loop
-  if (start_time > 0)
-  {
-    uint32_t duration = millis() - start_time;
-    if (duration > INTERVAL_TIME)
-    {
-      counter_wait++;
-      start_time = millis();
-      // Send the control message again
-      /* Hardcode */
-      controlRelay("SmartPole 003", "toggle");
-    }
-  }
-  if (counter_wait >= MAX_RETRIES)
-  {
-    printlnData("Timeout for ACK message");
-    counter_wait = 0;
-    start_time = 0;
-  }
-
-  vTaskDelay(pdMS_TO_TICKS(INTERVAL_TIME / 4));
 }
