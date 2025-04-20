@@ -1,5 +1,12 @@
 #include "loraTaskCallback.h"
 
+BasicQueue<String> *buffer_G2N = new BasicQueue<String>;
+
+BasicQueue<String>* get_bufferG2N()
+{
+    return buffer_G2N;
+}
+
 Pole::Pole(uint16_t address, float temp, float humi, float intensity)
 {
     this->address = address;
@@ -136,7 +143,7 @@ void LoRaRecvTask(void *pvParameters)
     }
 }
 
-void controlRelay(String device, String state)
+void controlRelay(String device, String state, String &message)
 {
     if (!getLoraIns() || !getConfigLora())
     {
@@ -144,50 +151,66 @@ void controlRelay(String device, String state)
         return;
     }
     String address = device.substring(device.indexOf(' '));
-    String msg = serializeJsonFormat(address, "Relay", state);
+    message = serializeJsonFormat(address, "Relay", state);
 
-    // Send message via LoRa
-    LoRa_E220_JP *lora_ptr = getLoraIns();
+    // Push message to Sending buffer (buffer gateway to Node)
+    buffer_G2N->push_back(message);
+    // LoRa_E220_JP *lora_ptr = getLoraIns();
 
-    if (lora_ptr->SendFrame(*getConfigLora(), (uint8_t *)msg.c_str(), msg.length()) == 0)
-    {
+    // if (lora_ptr->SendFrame(*getConfigLora(), (uint8_t *)message.c_str(), message.length()) == 0)
+    // {
 
-        Serial.print("Send message control relay to device: ");
-        Serial.print(device);
-        Serial.println(" success");
-    }
-    else
-    {
-        Serial.println("Send message failed.");
-    }
+    //     Serial.print("Send message control relay to device: ");
+    //     Serial.print(device);
+    //     Serial.println(" success");
+    // }
+    // else
+    // {
+    //     Serial.println("Send message failed.");
+    // }
     Serial.flush();
 }
 
-void controlPwm(String device, String value)
+void controlPwm(String device, String value, String &message)
 {
     if (!getLoraIns() || !getConfigLora())
     {
         Serial.println("LoRa is not initialized or config fail");
         return;
     }
-    // String pwm_template = "PWM: ";
-    // String msg = "";
     // msg = device + " { " + pwm_template + value + " }"; // SmartPole 001 { PWM: 50 }
     String address = device.substring(device.indexOf(' '));
-    String msg = serializeJsonFormat(address, "PWM", value);
+    message = serializeJsonFormat(address, "PWM", value);
 
+    // Push message to Sending buffer (buffer gateway to Node)
+    buffer_G2N->push_back(message);
     // Send message via LoRa
-    LoRa_E220_JP *lora_ptr = getLoraIns();
-    if (lora_ptr->SendFrame(*getConfigLora(), (uint8_t *)msg.c_str(), msg.length()) == 0)
-    {
+    // LoRa_E220_JP *lora_ptr = getLoraIns();
+    // if (lora_ptr->SendFrame(*getConfigLora(), (uint8_t *)message.c_str(), message.length()) == 0)
+    // {
 
-        Serial.print("Send message control Pwm to device: ");
-        Serial.print(device);
-        Serial.println(" success");
-    }
-    else
+    //     Serial.print("Send message control Pwm to device: ");
+    //     Serial.print(device);
+    //     Serial.println(" success");
+    // }
+    // else
+    // {
+    //     Serial.println("Send message failed.");
+    // }
+    // Serial.flush();
+}
+
+void sendLora(const String &msg)
+{
+    if (getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t*) msg.c_str(), msg.length()) == 0)
     {
-        Serial.println("Send message failed.");
+        printData("Send SUCCESS message via LORA, data: ");
+        printlnData(msg);
+    }
+    else 
+    {
+        printlnData("Send message FAIL via LORA, data: ");
+        printlnData(msg);
     }
     Serial.flush();
 }

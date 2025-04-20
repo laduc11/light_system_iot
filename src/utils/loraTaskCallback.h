@@ -31,6 +31,8 @@ public:
   void deserializeJsonPKG(String msg);
 };
 
+BasicQueue<String>* get_bufferG2N();
+
 // AT NODE AFTER RECEIVE FROM GATEWAY
 NodeStatus deserializeJsonFormat(const String &dataraw);
 
@@ -40,8 +42,9 @@ String serializeJsonFormat(String address, String method, String value);
 // RECEIVE LORA CALLBACK
 void LoRaRecvTask(void *pvParameters);
 
-void controlRelay(String device, String state);
+void controlRelay(String device, String state, String &message);
 
-void controlPwm(String device, String value);
+void controlPwm(String device, String value, String &message);
 
+void sendLora(const String &msg);
 #endif
