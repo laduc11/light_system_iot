@@ -1,7 +1,15 @@
 #include <globals.h>
 
+#define MAX_RETRIES 5
+#define INTERVAL_TIME 2000 // unit: ms
+
 RecvFrame_t data;
 String data_buffer;
+
+uint32_t start_time;
+
+// ACK attributes
+uint8_t counter_wait;
 
 void handleProcessBufferS2G(void *pvParameters)
 {
@@ -41,6 +49,10 @@ void handleProcessBufferS2G(void *pvParameters)
         printlnData(device);
         // Code for sending message to control relay with LoRa to node
         controlRelay(device, params);
+        if (start_time == 0)
+        {
+          start_time = millis();
+        }
       }
 
       if (method == "setPWM")
@@ -50,6 +62,10 @@ void handleProcessBufferS2G(void *pvParameters)
 
         // Code for sending messag to adjust pwm value with LoRa to node
         controlPwm(device, params);
+        if (start_time == 0)
+        {
+          start_time = millis();
+        }
       }
     }
     vTaskDelay(pdMS_TO_TICKS(200));
@@ -170,6 +186,16 @@ void handleProcessBuffer(void *pvParameters)
       {
         printlnData("Start processing Node Command Package");
         NodeStatus node = deserializeJsonFormat(msg);
+        if (start_time > 0)
+        {
+          uint32_t duration = millis() - start_time;
+          Serial.printf("Interval time: %d ms\n", duration);
+          Serial.printf("Retry: %d times\n", counter_wait);
+
+          // Reset attribute for retry mechanism
+          start_time = 0;
+          counter_wait = 0;
+        }
         processNodePkg(node);
       }
       else if (header == "PERIOD_SS")
@@ -191,6 +217,8 @@ void handleProcessBuffer(void *pvParameters)
 
 void setup()
 {
+  start_time = 0;
+  counter_wait = 0;
 
   Serial.begin(UART_DEFAUT_BAUDRATE, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   initDebugSerial(&Serial);
@@ -225,4 +253,26 @@ void setup()
 void loop()
 {
   // put your main code here, to run repeatedly:
+
+  // Need to create the task instead of main loop
+  if (start_time > 0)
+  {
+    uint32_t duration = millis() - start_time;
+    if (duration > INTERVAL_TIME)
+    {
+      counter_wait++;
+      start_time = millis();
+      // Send the control message again
+      /* Hardcode */
+      controlRelay("SmartPole 003", "toggle");
+    }
+  }
+  if (counter_wait >= MAX_RETRIES)
+  {
+    printlnData("Timeout for ACK message");
+    counter_wait = 0;
+    start_time = 0;
+  }
+
+  vTaskDelay(pdMS_TO_TICKS(INTERVAL_TIME / 4));
 }
