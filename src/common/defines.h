@@ -118,8 +118,8 @@
 #define delay_handle_lora_buffer (100)
 #define delay_waiting_ack_process (1000)
 #define delay_dimming_debug (100)
-#define delay_process_buffer (500)
-#define delay_sending_period_value (2000)
+#define delay_process_buffer (100)
+#define delay_sending_period_value (4000)
 
 // DEFINE WATCH DOG
 #define RESET_WATCHDOG_TIME (120) // seconds
