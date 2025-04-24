@@ -1,0 +1,41 @@
+@startuml message_processing
+title Message processing
+start
+    : Get message 
+    from queue;
+
+    : Parse the header 
+    to get message ID;
+    note left
+        Only node can send sensor value, 
+        acknowledgement message
+    end note
+    note right
+        After receiving RPC from server, gateway 
+        send command message to node such as 
+        control message, discover message
+    end note
+
+    if (type is sensor value) then (true)
+        : Deserialize message;
+        : Get all sensor value;
+        :     Send request
+        update dashboard;
+    elseif (type is acknowledgement) then (true)
+        : Get light state;
+        :     Send request
+        update dashboard;
+    elseif (type is discover node) then (true)
+        : Send scan message 
+          in broadcast mode;
+        : Update neighbor nodes;
+    elseif (type is control message) then (true)
+        : Deserialize message;
+        : Control the light;
+        : Get light state;
+        : Send ACK message;
+    else (false)
+        : Drop message;
+    endif
+stop
+@enduml
