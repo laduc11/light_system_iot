@@ -1,0 +1,25 @@
+@startuml gateway_ack
+title Sơ đồ quá trình xử lý gói tin có Header: ACK_STT tại Gateway
+
+start
+    :Pop gói tin từ buffer;
+    :Giải tuần tự gói tin để kiểm tra Header;
+
+    if (Header == ACK_STT) then (Yes)
+        :Lấy dữ liệu Address và
+        trường Data của gói tin;
+        if (Các trường dữ liệu trùng khớp với
+        gói tin đã gửi tới cùng địa chỉ) then (Yes)
+            :Publish lên Server xác nhận
+            trạng thái mới của đèn với địa
+            chỉ tương ứng.
+            Tắt cơ chế Timer;
+        else (No)
+            :Gói tin bị lỗi, hủy bỏ
+            Giữ nguyên cơ chế Timer;
+        endif
+    else (Header không hợp lệ)
+        :Loại bỏ gói tin;
+    endif
+stop
+@enduml
