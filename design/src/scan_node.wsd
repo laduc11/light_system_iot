@@ -1,0 +1,21 @@
+@startuml scan_node_processing
+title The Sequence Diagram of Node Scanning
+skinparam sequenceMessageAlign center
+
+actor Gateway      order 10
+actor Node         order 10
+
+Gateway -> Gateway: scan_node()
+activate Gateway
+    Gateway -> Node++: scan()
+    note left
+        Scan algorithm 
+        need 3 parameters:
+        1. Max interval
+        2. Min interval
+        3. Max nodes
+    end note
+        
+    deactivate Node
+deactivate Gateway
+@enduml

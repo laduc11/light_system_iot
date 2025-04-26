@@ -1,0 +1,29 @@
+@startuml ACK_processing
+skinparam sequenceMessageAlign center
+
+title ACK mechanism
+
+actor Gateway
+actor Node
+actor Light
+
+Gateway -> Node: control_message
+alt Node reply in time
+    Node -> Node ++: processMessage()
+        Node -> Light++: control()
+        return status
+
+        Node -> Gateway: ack_message
+    deactivate Node
+else Node reply time out
+    Gateway -> Gateway ++: resentMessage()
+        note left
+            Retry 5 times. 
+            If do not receive 
+            ack message, 
+            node is inactivate
+        end note
+        Gateway -> Node: control_message
+    deactivate Gateway
+end
+@enduml
