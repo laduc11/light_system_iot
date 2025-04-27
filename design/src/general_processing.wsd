@@ -83,7 +83,7 @@ deactivate Server
 
 loop Node is active
     Node -> Node: mainLoop()
-    note left: Execute every \n2 seconds
+    note left: Execute every \n4 seconds
     activate Node
         Node -> Sensor ++: getSensorValue()
         return sensor_value
@@ -104,15 +104,13 @@ when a message arrives.
 end note
 activate Gateway
     LoRa ->> Gateway: node_state
-    Gateway -> Gateway ++: processNodeState()
-    deactivate Gateway
-    Gateway -> Gateway ++: saveNodeState()
+    Gateway -> Gateway ++: saveRawMessage()
     deactivate Gateway
 deactivate Gateway
 
 loop Gateway is active
     Gateway -> Gateway: mainLoop()
-    note left: Execute every \n2 seconds
+    note left: Execute every \n100 miliseconds
     activate Gateway
         Gateway -> Gateway ++: getProcessedNodeState()
         deactivate Gateway
