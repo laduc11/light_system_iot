@@ -69,6 +69,8 @@ activate Node
     end
 deactivate Node
 
+newpage
+
 User -> Server: controlLight()
 activate Server
     Server -> Gateway ++: controlLightAt(node_address)
