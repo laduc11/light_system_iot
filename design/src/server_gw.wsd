@@ -1,0 +1,42 @@
+@startuml gateway_ack
+title Sơ đồ quá trình xử lý gói tin từ Server tới Gateway
+
+start
+    :Pop gói tin từ buffer;
+    :Giải tuần tự gói tin để lấy giá trị
+    định danh thiết bị và
+    ánh xạ vào địa chỉ trong hệ thống;
+
+    ' note right
+    '     Chỉ có gateway mới xử lý gói tin này
+    ' end note
+
+    if (Kiểm tra địa chỉ) then (nếu tồn tại)
+        :Lấy giá trị trường
+          Method và Params;
+        if (Method hợp lệ) then (Yes)
+            if (Method == setState) then (Yes)
+                : Tuần tự hóa nội dung Relay;
+                : Đóng gói gói tin với
+                nội dung điều khiển Relay;
+            else (Method == setPWM)
+                : Tuần tự hóa nội dung PWM;
+                : Đóng gói gói tin với
+                nội dung điều khiển PWM;
+            endif
+            repeat
+                :Bật Timer
+                Gửi thông điệp
+                Đợi gói tin hồi đáp;
+            repeat while (Timeout)->Yes
+            : Publish trạng thái sau khi
+            thực thi lệnh lên CoreIoT;
+        else (Method không hợp lệ)
+            :Loại bỏ gói tin;
+        endif
+    else (không tồn tại trong hệ thống)
+        :Loại bỏ gói tin, ghi nội
+        dung ra Serial Monitor;
+    endif
+stop
+@enduml
