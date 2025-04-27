@@ -1,0 +1,44 @@
+@startuml rtos_gw
+title Processing at the gateway location
+
+start
+    :Entry Point (main());
+    :Setup
+        - init Serial Monitor,
+        PIN mode 
+        - init UART and
+        configure Lora Module
+        - init I2C
+        - init Wifi
+        - init MQTT (only gateway do it)
+        ;
+        repeat
+            : MQTT callback;
+            note left
+                listen signal
+                from server
+            endnote
+            : LoRaRecvTask;
+            note left
+                listen to node
+            endnote
+            : Handle buffers;
+            note left
+                Pop packages in the
+                queue to process
+            endnote
+            : other periodic tasks;
+        repeat while (true)
+    ' while (true)
+    '     : LoRaRecvTask;
+    '     note right
+    '         listen to node
+    '     endnote
+    '     : Handle buffers;
+    '     note right
+    '         Pop the package in the queue to process
+    '     endnote
+    '     : other periodic tasks;
+    ' endwhile
+stop
+@enduml
