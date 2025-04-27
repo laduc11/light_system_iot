@@ -2,22 +2,26 @@
 title Sơ đồ quá trình xử lý gói tin có Header: PERIOD_SS tại Gateway
 
 start
-    :Pop gói tin từ buffer;
-    :Giải tuần tự gói tin để kiểm tra Header;
+    :Lấy gói tin thô từ buffer nhận;
 
     if (Header == PERIOD_SS) then (Yes)
-        if (Lấy giá trị:
-        - Địa chỉ
-        - Nhiệt độ
-        - Độ ẩm
-        - Ánh sáng) then (Hợp lệ)
-            :Publish lên server trạng thái mới
-            của đèn với địa chỉ tương ứng;
-        else (Không hợp lệ)
-            :Xem là gói tin lỗi, hủy bỏ;
+        if (Phân giải) then (Success)
+            note left
+                Các loại cảm biến
+                - Nhiệt độ
+                - Độ ẩm
+                - Ánh sáng
+            end note
+            :Lấy địa chỉ nguồn của gói tin;
+            :Lấy giá trị của cảm biến;
+            :Cập nhật các giá trị 
+            cảm biến của Node 
+            lên Server;
+        else (Fail)
+            :Hủy bỏ gói tin;
         endif
-    else (Header không hợp lệ)
-        :Xem là gói tin lỗi, hủy bỏ;
+    else (No)
+        :Hủy bỏ gói tin;
     endif
 stop
 @enduml

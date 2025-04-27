@@ -2,20 +2,25 @@
 title Sơ đồ quá trình xử lý gói tin có Header: ACK_STT tại Node
 
 start
-    :Pop gói tin từ buffer;
-    :Giải tuần tự gói tin để kiểm tra Header;
+    :Lấy gói tin thô từ buffer nhận;
 
     if (Header == ACK_STT) then (Yes)
-        :Lấy dữ liệu Address và trường Data của gói tin;
-        if (Address == own_address) then (Yes)
-            :Lấy giá trị Relay và PWM;
-            :Xử lý lệnh điều khiển thông qua 2 tham số Relay và PWM;
-        else (No)
+        if (Phân giải) then (success) 
+            :Lấy dữ liệu Address và 
+            trường Data của gói tin;
+            if (Address == own_address) then (Yes)
+                :Lấy giá trị Relay và PWM;
+                :Xử lý lệnh điều khiển thông 
+                qua 2 tham số Relay và PWM;
+            else (No)
+                :Chuyển tiếp gói tin 
+                đến địa chỉ lấy được;
+            endif
+        else (Fail)
             :Loại bỏ gói tin;
         endif
-    else (Header không hợp lệ)
+    else (No)
         :Loại bỏ gói tin;
     endif
-
 stop
 @enduml
