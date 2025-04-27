@@ -1,4 +1,4 @@
-@startuml gateway_ack
+@startuml gateway_period
 title Sơ đồ quá trình xử lý gói tin có Header: PERIOD_SS tại Gateway
 
 start
