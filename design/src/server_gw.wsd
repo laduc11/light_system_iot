@@ -1,42 +1,57 @@
-@startuml gateway_ack
+@startuml gateway_server
 title Sơ đồ quá trình xử lý gói tin từ Server tới Gateway
 
 start
-    :Pop gói tin từ buffer;
-    :Giải tuần tự gói tin để lấy giá trị
-    định danh thiết bị và
-    ánh xạ vào địa chỉ trong hệ thống;
+    :Lấy gói tin thô từ buffer nhận;
+    :Phân giải gói tin;
+    :Phân loại gói tin 
+    dựa trên trường 
+    Method;
 
-    ' note right
-    '     Chỉ có gateway mới xử lý gói tin này
-    ' end note
+    if (Lệnh điều khiển hợp lệ) then (Success)
+        :Đặt Timer;
+        :Gửi lệnh điều khiển;
+        :Thực hiện "Cơ chế gửi lại gói tin";
 
-    if (Kiểm tra địa chỉ) then (nếu tồn tại)
-        :Lấy giá trị trường
-          Method và Params;
-        if (Method hợp lệ) then (Yes)
-            if (Method == setState) then (Yes)
-                : Tuần tự hóa nội dung Relay;
-                : Đóng gói gói tin với
-                nội dung điều khiển Relay;
-            else (Method == setPWM)
-                : Tuần tự hóa nội dung PWM;
-                : Đóng gói gói tin với
-                nội dung điều khiển PWM;
-            endif
-            repeat
-                :Bật Timer
-                Gửi thông điệp
-                Đợi gói tin hồi đáp;
-            repeat while (Timeout)->Yes
-            : Publish trạng thái sau khi
-            thực thi lệnh lên CoreIoT;
-        else (Method không hợp lệ)
-            :Loại bỏ gói tin;
+        if (Nhận phản hồi) then (Yes)
+            :Gửi trạng thái 
+            hiện tại của Node 
+            lên Server;
+        else (No)
+            :Do nothing;
         endif
-    else (không tồn tại trong hệ thống)
-        :Loại bỏ gói tin, ghi nội
-        dung ra Serial Monitor;
+    else (Fail)
+        :Do nothing;
     endif
+stop
+@enduml
+
+@startuml message_classify
+title Cơ chế phân loại gói tin
+start
+    if (Method == setState) then (Yes)
+        :Tạo ra gói tin 
+        điều khiển Relay;
+    elseif (Method == setPWM) then (Yes)
+        :Tạo ra gói tin 
+        điều khiển PWM;
+    else (No)
+        :Loại bỏ gói tin;
+    endif
+stop
+@enduml
+
+@startuml wait_and_retry
+title Cơ chế gửi lại gói tin
+start
+    while (retry < MAX RETRY and No response) is (Yes)
+        :Kiểm tra gói tin trong buffer;
+        if (Timeout) then (Yes)
+            :Tăng số lần thử;
+            :Đặt lại Timer;
+        else (No)
+            :Do nothing;
+        endif
+    endwhile
 stop
 @enduml
