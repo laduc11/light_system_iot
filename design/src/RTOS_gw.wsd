@@ -1,5 +1,5 @@
 @startuml rtos_gw
-title Processing at the gateway location
+title Diagram illustrating the process flow
 
 start
     :Entry Point (main());
