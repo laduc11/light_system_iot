@@ -1,0 +1,42 @@
+@startuml Trickle_algorithm
+skinparam ActivityFontName "Times New Roman"
+skinparam defaultTextAlignment center
+skinparam NoteTextAlignment center
+
+title Trickle algorithm
+
+start
+:Choose I < Imax
+c = 0
+I/2 < t < Imax;
+
+while (c < k) is (true)
+    :Receive new message;
+    if (Inconsistence?) then (yes)
+        note left
+            If node receive ACK message,
+            node will stop broadcast
+        end note
+        :Send ACK to Node;
+        :Interval length = Imin;
+        :Save nodeID and RSSI;
+    else (no)
+        :c = c + 1;
+        if (At "t" time and c < k?) then (yes)
+            :Transmission;
+        else (no)
+            :Terminate loop;
+        endif
+    endif
+    :Interval expires;
+    if (2I > Imax?) then (yes)
+        :I = Imax;
+    else
+        :Double I;
+    endif
+    :c = 0
+    calculate t;
+endwhile 
+:Return list of nodes;
+stop
+@enduml
