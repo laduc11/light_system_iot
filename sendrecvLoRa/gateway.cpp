@@ -56,6 +56,19 @@ void handleProcessBufferS2G(void *pvParameters)
         }
       }
 
+      if (method == "POLE_SCHEDULE_TOGGLE")
+      {
+        printData("Check device: ");
+        printlnData(device);
+        // Code for sending message to control relay with LoRa to node
+        params = "toggle";
+        controlRelay(device, params, cmd_msg);
+        if (start_time == 0)
+        {
+          start_time = millis();
+        }
+      }
+
       if (method == "setPWM")
       {
         printData("Check device: ");
