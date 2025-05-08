@@ -74,10 +74,8 @@ void updatePeriodPole(void *pvParameters)
     Pole pole;
     pole.address = getConfigLora()->own_address;
     getDataDHT20(pole.humi, pole.temp);
-    // pole.humi = (rand() % 100) * 1.0;
-    // pole.temp = (rand() % 100) *1.0;
-    // pole.intensity = analogRead(A10);`
-    pole.intensity = 50.00;
+    pole.intensity = analogRead(ANALOG_PIN)*100.0f/4095.0f;
+    // pole.intensity = 50.00;
     String pkg = pole.serializeJsonPKG();
     if (getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)pkg.c_str(), pkg.length()) == 0)
     {
@@ -96,6 +94,7 @@ void setup()
   // Initialize Pin and Serial
   Serial.begin(UART_DEFAUT_BAUDRATE, SERIAL_8N1, UART_RXD_DEBUG_PIN, UART_TXD_DEBUG_PIN);
   initDebugSerial(&Serial);
+  pinMode(ANALOG_PIN, INPUT); // Set GPIO 12 as input for light sensor 
   pinMode(INBUILD_LED_PIN, OUTPUT);
   digitalWrite(INBUILD_LED_PIN, LOW); // Turn off the build-in LED
 
