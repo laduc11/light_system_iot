@@ -7,11 +7,11 @@ void taskLedBlink(void *pvParameters)
     while (1)
     {
       digitalWrite(INBUILD_LED_PIN, HIGH);
-      Serial.println("LED ON, S0");
+      // Serial.println("LED ON, S0");
     
       vTaskDelay(pdMS_TO_TICKS(2000));
       digitalWrite(INBUILD_LED_PIN, LOW);
-      Serial.println("LED OFF, S0");
+      // Serial.println("LED OFF, S0");
       vTaskDelay(pdMS_TO_TICKS(2000));
     }
     vTaskDelete(nullptr);
