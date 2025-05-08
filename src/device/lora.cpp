@@ -1,5 +1,8 @@
 #include "lora.h"
 
+// Private macro
+#define LORA_MAX_RETRY 10
+
 // Private  instance
 static LoRa_E220_JP *lora_ptr = nullptr;
 static LoRaConfigItem_t *configuration_ptr = nullptr;
@@ -78,12 +81,19 @@ void setConfiguration(Role role, uint16_t address)
         Serial.println("Role unknown");
         return;
     }
-    while (lora_ptr->InitLoRaSetting(*configuration_ptr) != 0)
+
+    int retry = LORA_MAX_RETRY;
+    while (lora_ptr->InitLoRaSetting(*configuration_ptr) != 0 && retry > 0)
     {
         Serial.println("Lora init fail!");
+        retry--;
         vTaskDelay(pdMS_TO_TICKS(delay_lora_configure));
     }
-    Serial.println("Lora init success!");
+    if (retry > 0) 
+    {
+        Serial.println("Lora init success!");
+    }
+        
 }
 
 LoRa_E220_JP* getLoraIns()

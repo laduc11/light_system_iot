@@ -63,11 +63,11 @@ void LoRaRecvTask(void *pvParameters) {
       if (getLoraIns()->RecieveFrame(&data) == 0) 
       {
         data_buffer = String(data.recv_data, data.recv_data_len);
-        Serial.print("Data size: ");
-        Serial.println(data.recv_data_len);
-        Serial.print(data_buffer);
+        // Serial.print("Data size: ");
+        // Serial.println(data.recv_data_len);
+        // Serial.print(data_buffer);
+        // Serial.println();
           
-        Serial.println();
         Serial.printf("RSSI: %d dBm\n", data.rssi);
         Serial.flush();
         q->push_back(data_buffer);

@@ -80,6 +80,24 @@ public:
         }
         return val;
     }
+    bool find(const T& value)
+    {
+        if (xSemaphoreTake(this->mutex, (TickType_t)10) == pdTRUE)
+        {
+            Node *p = head;
+            while (p != nullptr)
+            {
+                if (p->data == value)
+                {
+                    xSemaphoreGive(this->mutex);
+                    return true;
+                }
+                p = p->next;
+            }
+            xSemaphoreGive(this->mutex);
+        }
+        return false;
+    }
 public: 
   class Node
   {

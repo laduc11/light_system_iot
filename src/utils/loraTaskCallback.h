@@ -2,20 +2,7 @@
 #define __LORA_TASK_CALLBACK__
 #include "device/lora.h"
 #include <globals.h>
-
-class NodeStatus
-{
-public:
-    int address;
-    int state;
-    int pwm_val;
-    NodeStatus(int add = -1, int state = 0, int val = -1)
-    {
-    this->address = add;
-    this->state = state;
-    this->pwm_val = val;
-    }
-};
+#include <objects.h>
 
 // AT NODE AFTER RECEIVE FROM GATEWAY
 NodeStatus deserializeJsonFormat(const String &dataraw);
