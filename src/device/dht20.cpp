@@ -14,21 +14,23 @@ void initDHT20()
   while (!dht_ptr->begin())
   {
     Serial.println("Failed to initialize DHT20 sensor!");
-    vTaskDelay(pdMS_TO_TICKS(500));   // Wait 500ms and retry to connect
+    vTaskDelay(pdMS_TO_TICKS(500)); // Wait 500ms and retry to connect
   }
   Serial.println("DHT20 initialized successfully.");
 }
 
 void deinitDHT20()
 {
-  if (nullptr != dht_ptr) {
+  if (nullptr != dht_ptr)
+  {
     delete dht_ptr;
   }
 }
 
 void readDataDHT20(void *pvParameter)
 {
-  if (nullptr == dht_ptr) {
+  if (nullptr == dht_ptr)
+  {
     printlnData("DHT20 is not initialized");
   }
 
@@ -50,7 +52,7 @@ void readDataDHT20(void *pvParameter)
     //  DISPLAY DATA, sensor has only one decimal.
     Serial.print(dht_ptr->getHumidity(), 1);
     Serial.print("\t\t");
-    Serial.print(dht_ptr->  (), 1);
+    Serial.print(dht_ptr->(), 1);
     Serial.print("\t\t");
 
     // Handle status
@@ -82,12 +84,12 @@ void readDataDHT20(void *pvParameter)
       break;
     }
     Serial.println();
-#endif  // DEBUG_DHT20
+#endif // DEBUG_DHT20
     vTaskDelayUntil(&now, pdMS_TO_TICKS(I2C_READ_DATA_PERIOD));
   }
 }
 
-inline void getDataDHT20(float &humidity, float &temperature)
+void getDataDHT20(float &humidity, float &temperature)
 {
   if (nullptr == dht_ptr || !is_data_avaible)
   {
