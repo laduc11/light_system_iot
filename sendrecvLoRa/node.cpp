@@ -8,8 +8,14 @@ void handleProcessBuffer(void *pvParameters)
   {
     if (!q->isEmpty())
     {
+      String pkg = q->pop();
+      if (pkg == "scan") {
+        String msg = "response_scan: 0x000" + String(getConfigLora()->own_address);
+        getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)msg.c_str(), msg.length());
+        continue;
+      }
       NodeStatus node;
-      node = deserializeJsonFormat(q->pop());
+      node = deserializeJsonFormat(pkg);
       // Check destination address
       if (node.address != getConfigLora()->own_address)
       {

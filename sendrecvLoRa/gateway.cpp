@@ -81,6 +81,13 @@ void handleProcessBufferS2G(void *pvParameters)
           start_time = millis();
         }
       }
+
+      if (method == "scan")
+      {
+        String scan_msg = "scan";
+        get_bufferG2N()->push_back(scan_msg);
+        printlnData("Send scan message");
+      }
     }
     vTaskDelay(pdMS_TO_TICKS(200));
   }
@@ -212,6 +219,21 @@ void handleProcessBufferN2G(void *pvParameters)
     if (!q->isEmpty())
     {
       String msg = q->pop();
+      if (msg.substring(0, 17) == "scan_response: 0x")
+      {
+        int address = msg.substring(17).toInt();
+        JsonDocument doc;
+        char pole_addr[15];
+        sprintf(pole_addr, "SmartPole %03x", address);
+        JsonArray telemetryArray = doc[pole_addr].to<JsonArray>();
+        JsonObject telemetryObject = telemetryArray.createNestedObject();
+        telemetryObject["RSSI"] = "-20";
+        String msg;
+        serializeJson(doc, msg);
+        publishData(MQTT_GATEWAY_TELEMETRY_TOPIC, msg);
+        continue;
+      }
+      
       JsonDocument doc;
       DeserializationError error = deserializeJson(doc, msg);
       if (error)
