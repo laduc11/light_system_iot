@@ -1,17 +1,46 @@
 #include "globals.h"
 #include "utils/serializer.h"
 
+// global variables
+uint16_t child_address = 0xffff; // Default address
+uint16_t parent_address = 0xffff; // Default address
+bool scan_mode = false; // Default scan mode
+
+int findMax(BasicQueue<int> queue)
+{
+  if (queue.isEmpty())
+  {
+    return -1; // Return -1 if the queue is empty
+  }
+  int max_idx = 0;
+  int max = queue.get(0);
+  for (int i = 1; i < queue.size(); i++)
+  {
+    if (queue.get(i) > max)
+    {
+      max = queue.get(i);
+      max_idx = i;
+    }
+  }
+  return max_idx;
+}
+
 // Handle after receive lora package from gateway
 void handleProcessBuffer(void *pvParameters)
 {
-  BasicQueue<String> *q = (BasicQueue<String> *)pvParameters;
+  BasicQueue<RecvFrame_t> *q = (BasicQueue<RecvFrame_t> *)pvParameters;
   BasicQueue<uint16_t> parent_address_queue;
+  BasicQueue<int> parent_rssi_queue;
+  
+  BasicQueue<uint16_t> child_address_queue;
+  BasicQueue<int> child_rssi_queue;
 
   while(1)
   {
     if (!q->isEmpty())
     {
-      String data = q->pop();
+      RecvFrame_t frame = q->pop();
+      String data = String(frame.recv_data, frame.recv_data_len);
       // Deserialize the data to LoraMessage
       LoraMessage lora_message;
       deserializeLoraMessage(lora_message, data);
@@ -22,18 +51,39 @@ void handleProcessBuffer(void *pvParameters)
         // Process the contLrol relay message
         Serial.printf("Control Relay: Address: %04X, State: %d\n", control_relay_message->source_address, control_relay_message->relay_state);
 
+        if (control_relay_message->relay_state == RELAY_HIGH)
+        {
+          setRelayOn();
+        }
+        else if (control_relay_message->relay_state == RELAY_LOW)
+        {
+          setRelayOff();
+        }
+        else if (control_relay_message->relay_state == RELAY_TOGGLE)
+        {
+          toggleRelay();
+        }
+
         /* Send the same messagae back to the sender */
         SerializedMessage out_msg;
         // Update the source address and destination address for lora message
-        control_relay_message->destination_address = control_relay_message->source_address;
-        control_relay_message->source_address = getConfigLora()->own_address;
-        // Serialize the message to send back
-        serializeLoraMessage(out_msg, lora_message);
-        // Send the message back to the sender
-        getConfigLora()->target_address = control_relay_message->destination_address;
-        getLoraIns()->SendFrame(*(getConfigLora()), out_msg.data, out_msg.length);
-        printlnData("Send control relay message back");
-        getConfigLora()->target_address = 0xffff;   // Reset target address to 0xffff
+        if (control_relay_message->destination_address != getConfigLora()->own_address) {
+          // forward the message to the destination address
+          getConfigLora()->target_address = control_relay_message->destination_address;
+          control_relay_message->source_address = getConfigLora()->own_address;
+          control_relay_message->relay_state = getRelayStatus();   
+          // Serialize the message to send back
+          serializeLoraMessage(out_msg, lora_message);
+          // Send the message back to the sender
+          getConfigLora()->target_address = control_relay_message->destination_address;
+          getLoraIns()->SendFrame(*(getConfigLora()), out_msg.data, out_msg.length);
+          Serial.printf("Destination address: %04X\n", control_relay_message->destination_address);
+          printlnData("Send control relay message back");
+          getConfigLora()->target_address = child_address;   // Reset target address to child address
+        } else {
+          // correct destination address
+        }
+
       }
       else if (lora_message.type == LORA_MESSAGE_CONTROL_BRIGHTNESS)
       {
@@ -58,14 +108,15 @@ void handleProcessBuffer(void *pvParameters)
       {
         // Handle scan message
         ScanMessage *scan_message = (ScanMessage *)lora_message.data;
-        Serial.printf("Scan message: Address: %04X\n", scan_message->source_address);
         if (!parent_address_queue.find(scan_message->source_address))
         {
+          Serial.printf("Scan message: Address: %04X\n", scan_message->source_address);
           parent_address_queue.push_back(scan_message->source_address);   // Add the address to the queue
+          parent_rssi_queue.push_back(frame.rssi);   // Add the RSSI to the queue
         }
         else
         {
-          Serial.printf("Address %04X already in the queue\n", scan_message->source_address);
+          // Serial.printf("Address %04X already in the queue\n", scan_message->source_address);
           continue;
         }
 
@@ -91,6 +142,11 @@ void handleProcessBuffer(void *pvParameters)
         // Get node address from message and print it
         ScanMessage *scan_response_message = (ScanMessage *)lora_message.data;
         Serial.printf("Scan response message: Address: %04X\n", scan_response_message->source_address);
+
+        // Update the child address and RSSI queues
+        child_address_queue.push_back(scan_response_message->source_address);
+        child_rssi_queue.push_back(frame.rssi);   // Add the RSSI to the queue
+        child_address = child_address_queue.get(findMax(child_rssi_queue));
       }
     }
     else
@@ -131,10 +187,14 @@ void sendLoraMessageTask(void *pvParameter)
   LoRaConfigItem_t *config_param = getConfigLora();
 
   while (true) {
+    if (!scan_mode) {
+      // Update the target address
+      config_param->target_address = child_address;
+    }
     if (!send_queue->isEmpty()) {
       String data = send_queue->pop();
       lora_ins->SendFrame(*config_param, (uint8_t *)data.c_str(), data.length());
-      printlnData("Send message via LoRa success");
+      Serial.printf("Send message via LoRa success to address: %04X\n", config_param->target_address);
     } else {
       vTaskDelay(500);  // Delay 500 ms to avoid
     }
@@ -148,6 +208,7 @@ void sendLoraMessageTask(void *pvParameter)
  */
 void scanNode(void *pvParameter)
 {
+  scan_mode = true;
   BasicQueue<String> *send_queue = (BasicQueue<String> *)pvParameter;
   LoRa_E220_JP *lora_ins = getLoraIns();
   LoRaConfigItem_t *config_param = getConfigLora();
@@ -166,6 +227,7 @@ void scanNode(void *pvParameter)
     send_queue->push_back(String(serialized_message.data, serialized_message.length));
     vTaskDelay(pdMS_TO_TICKS(5000));   // Delay 5 second
   }
+  scan_mode = false;;
 }
 
 /**
@@ -225,6 +287,43 @@ void readDataFromSerial(void *pvParameter)
       if (buffer == "scan") {
         // Scan node
         scanNode(pvParameter);
+      } else if (buffer == "toggle") {
+        // Toggle relay
+        ControlRelayMessage *message = new ControlRelayMessage(
+          getConfigLora()->own_address,
+          getConfigLora()->target_address,
+          static_cast<uint8_t>(RELAY_TOGGLE)
+        );
+
+        LoraMessage lora_message;
+        lora_message.type = LORA_MESSAGE_CONTROL_RELAY;
+        lora_message.data = message;
+
+        SerializedMessage serialized_message;
+        serializeLoraMessage(serialized_message, lora_message);
+
+        BasicQueue<String> *send_buffer = (BasicQueue<String> *)pvParameter;
+        send_buffer->push_back(String(serialized_message.data, serialized_message.length));
+      } else if (buffer == "0003") {
+        // Toggle relay
+        ControlRelayMessage *message = new ControlRelayMessage(
+          getConfigLora()->own_address,
+          0x0003,
+          static_cast<uint8_t>(RELAY_TOGGLE)
+        );
+
+        LoraMessage lora_message;
+        lora_message.type = LORA_MESSAGE_CONTROL_RELAY;
+        lora_message.data = message;
+
+        SerializedMessage serialized_message;
+        serializeLoraMessage(serialized_message, lora_message);
+
+        BasicQueue<String> *send_buffer = (BasicQueue<String> *)pvParameter;
+        send_buffer->push_back(String(serialized_message.data, serialized_message.length));
+      } else {
+        Serial.println("Unknown command");
+
       }
       
       // end TODO
@@ -251,20 +350,19 @@ void setup()
 
   // Initialize LoRa
   initLora();
-  setConfiguration(NODE, 0x0005);   // Hard code with address node: 0x0002
+  setConfiguration(NODE, 0x0002);   // Hard code with address node: 0x0002
 
   // Initialize Network layer and Device layer
   device_init();
 
   // Initialize queue for sending and receiving data
   BasicQueue<String> *send_queue = new BasicQueue<String>();
-  BasicQueue<String> *recv_queue = new BasicQueue<String>();
+  BasicQueue<RecvFrame_t> *recv_queue = new BasicQueue<RecvFrame_t>();
 
   // Create task for RTOS
   xTaskCreate(handleProcessBuffer, "handle process buffer", 1024 * 8, recv_queue, 1, nullptr);
   xTaskCreate(LoRaRecvTask, "receiver", 1024*4, recv_queue, 0, nullptr);
   xTaskCreate(sendLoraMessageTask, "sender", 1024*4, send_queue, 1, nullptr);
-  // xTaskCreate(produceMessage, "producer", 1024 * 2, send_queue, 2, nullptr);
   xTaskCreate(readDataFromSerial, "read data from keyboard", 1024 * 2, send_queue, 1, nullptr);
 
   // xTaskCreate(readDataDHT20, "DHT20 data reader", 1024 * 4, nullptr, 1, nullptr);

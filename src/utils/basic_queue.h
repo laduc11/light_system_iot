@@ -98,6 +98,28 @@ public:
         }
         return false;
     }
+    T get(int index)
+    {
+        if (xSemaphoreTake(this->mutex, (TickType_t)10) == pdTRUE)
+        {
+            if (index < 0 || index >= count)
+            {
+                xSemaphoreGive(this->mutex);
+                return T();
+            }
+            Node *p = head;
+            while (index)
+            {
+                p = p->next;
+                index--;
+            }
+            xSemaphoreGive(this->mutex);
+            return p->data;
+        }
+        return T();
+    }
+    int size() { return count; }
+
 public: 
   class Node
   {

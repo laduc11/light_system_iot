@@ -8,5 +8,7 @@ void taskInitRelayControl(void *pvParameter);
 void initRelayControl();
 void setRelayOn();
 void setRelayOff();
+void toggleRelay();
+int getRelayStatus();
 
 #endif

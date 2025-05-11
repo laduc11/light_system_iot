@@ -33,12 +33,12 @@ SerializerStatus deserializeControlRelayMessage(LoraMessage &out_msg, const Stri
 
   // Get value from Json message
   ControlRelayMessage *control_relay_message = new ControlRelayMessage();
-  uint16_t source_address = (uint16_t)strtol(doc["Address"].as<String>().c_str(), nullptr, 16);
+  uint16_t destination_address = (uint16_t)strtol(doc["Address"].as<String>().c_str(), nullptr, 16);
   JsonObject data = doc["data"].as<JsonObject>();
   String state = data["Relay"].as<String>();
 
   // Pass value to ControlRelayMessage's attributes
-  control_relay_message->source_address = source_address;
+  control_relay_message->destination_address = destination_address;
   if (state == "high")
   {
     control_relay_message->relay_state = RELAY_HIGH;

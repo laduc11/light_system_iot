@@ -82,18 +82,12 @@ void setConfiguration(Role role, uint16_t address)
         return;
     }
 
-    int retry = LORA_MAX_RETRY;
-    while (lora_ptr->InitLoRaSetting(*configuration_ptr) != 0 && retry > 0)
+    while (lora_ptr->InitLoRaSetting(*configuration_ptr) != 0)
     {
         Serial.println("Lora init fail!");
-        retry--;
         vTaskDelay(pdMS_TO_TICKS(delay_lora_configure));
     }
-    if (retry > 0) 
-    {
-        Serial.println("Lora init success!");
-    }
-        
+    Serial.println("Lora init success!");
 }
 
 LoRa_E220_JP* getLoraIns()

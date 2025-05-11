@@ -29,3 +29,22 @@ void setRelayOff()
     digitalWrite(RELAY_PIN, RELAY_OFF);
     printlnData("Turn relay off");
 }
+
+void toggleRelay()
+{
+    if (relay_status == RELAY_ON)
+    {
+        setRelayOff();
+        relay_status = RELAY_OFF;
+    }
+    else
+    {
+        setRelayOn();
+        relay_status = RELAY_ON;
+    }
+}
+
+int getRelayStatus()
+{
+    return relay_status;
+}

@@ -55,14 +55,14 @@ String serializeJsonFormat(String address, String method, String value)
 }
 
 void LoRaRecvTask(void *pvParameters) {
-    BasicQueue<String> *q = (BasicQueue<String> *)pvParameters;
+    BasicQueue<RecvFrame_t> *q = (BasicQueue<RecvFrame_t> *)pvParameters;
     RecvFrame_t data;
     String data_buffer;
     while (1)
     { 
       if (getLoraIns()->RecieveFrame(&data) == 0) 
       {
-        data_buffer = String(data.recv_data, data.recv_data_len);
+        // data_buffer = String(data.recv_data, data.recv_data_len);
         // Serial.print("Data size: ");
         // Serial.println(data.recv_data_len);
         // Serial.print(data_buffer);
@@ -70,7 +70,7 @@ void LoRaRecvTask(void *pvParameters) {
           
         Serial.printf("RSSI: %d dBm\n", data.rssi);
         Serial.flush();
-        q->push_back(data_buffer);
+        q->push_back(data);
       }
       vTaskDelay(pdMS_TO_TICKS(delay_rev_lora_process));
     }
