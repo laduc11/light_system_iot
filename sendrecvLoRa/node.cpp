@@ -85,12 +85,12 @@ void updatePeriodPole(void *pvParameters)
     String pkg = pole.serializeJsonPKG();
     if (getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)pkg.c_str(), pkg.length()) == 0)
     {
-      Serial.printf("Upload Pole value to GW: Humid: %f, Temp: %f", pole.humi, pole.temp);
+      Serial.printf("Upload Pole value to GW: Humid: %f, Temp: %f, addr: %04x", pole.humi, pole.temp, pole.address);
       Serial.println();
     }
     else
       Serial.println("Upload fail.");
-    delay(delay_sending_period_value);
+    delay(4000);
   }
 }
 

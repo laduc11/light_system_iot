@@ -30,7 +30,7 @@ LoRaConfigItem_t *getNodeConfiguration(uint16_t address)
     LoRaConfigItem_t *configuration = (LoRaConfigItem_t *)malloc(sizeof(LoRaConfigItem_t));
     configuration->own_address = address;
     configuration->baud_rate = BAUD_9600;
-    configuration->air_data_rate = BW125K_SF9;
+    configuration->air_data_rate = 0b00111;
     configuration->subpacket_size = SUBPACKET_200_BYTE;
     configuration->rssi_ambient_noise_flag = RSSI_AMBIENT_NOISE_ENABLE;
     configuration->transmitting_power = TX_POWER_13dBm;
