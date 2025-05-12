@@ -1,8 +1,8 @@
 #include <globals.h>
 
 #define MAX_RETRIES 5
-#define INTERVAL_TIME 3000 // unit: ms
-#define delay_process_send_dataN2G 10 //unit: ms
+#define INTERVAL_TIME 3000            // unit: ms
+#define delay_process_send_dataN2G 10 // unit: ms
 
 RecvFrame_t data;
 String data_buffer;
@@ -13,6 +13,8 @@ uint32_t start_time;
 uint8_t counter_wait;
 
 String cmd_msg;
+// Function to send fake data to Sever CoreIOT
+
 void handleProcessBufferS2G(void *pvParameters)
 {
   BasicQueue<String> *q = (BasicQueue<String> *)pvParameters;
@@ -58,8 +60,7 @@ void handleProcessBufferS2G(void *pvParameters)
 
       if (method == "POLE_SCHEDULE_TOGGLE")
       {
-        printData("Check device: ");
-        printlnData(device);
+        Serial.printf("Schedule: %s\n", device.c_str());
         // Code for sending message to control relay with LoRa to node
         params = "toggle";
         controlRelay(device, params, cmd_msg);
@@ -81,20 +82,20 @@ void handleProcessBufferS2G(void *pvParameters)
           start_time = millis();
         }
       }
-
-      if (method == "scan")
-      {
-        String scan_msg = "scan";
-        get_bufferG2N()->push_back(scan_msg);
-        printlnData("Send scan message");
-      }
+      // if (method == "scan")
+      // {
+      //   String scan_msg = "scan";
+      //   // get_bufferG2N()->push_back(scan_msg);
+      //   sendScan2Server();
+      //   printlnData("Send scan message");
+      // }
     }
     vTaskDelay(pdMS_TO_TICKS(200));
   }
   vTaskDelete(nullptr);
 }
 
-void retryCommandPkg(void* pvParameters)
+void retryCommandPkg(void *pvParameters)
 {
   while (1)
   {
@@ -118,30 +119,6 @@ void retryCommandPkg(void* pvParameters)
 
     vTaskDelay(pdMS_TO_TICKS(INTERVAL_TIME / 4));
   }
-}
-
-// Function to send fake data to Sever CoreIOT
-void sendCorrectDataToGateway()
-{
-  JsonDocument jsonDoc;
-
-  const char *devices[] = {"SmartPole 001", "SmartPole 002", "SmartPole 003"};
-  const char *switchStates[] = {"low", "low", "low"};
-
-  for (int i = 0; i < 3; i++)
-  {
-    JsonArray deviceArray = jsonDoc[devices[i]].to<JsonArray>();
-    JsonObject statusObj = deviceArray.add<JsonObject>();
-    statusObj["switchstate"] = switchStates[i];
-  }
-
-  char buffer[512];
-  serializeJson(jsonDoc, buffer, sizeof(buffer));
-
-  publishData(MQTT_GATEWAY_TELEMETRY_TOPIC, buffer);
-
-  printlnData("Sending Data to Gateway:");
-  printlnData(buffer);
 }
 
 // Publish sensor value, from lora -> gateway -> server
@@ -233,7 +210,7 @@ void handleProcessBufferN2G(void *pvParameters)
         publishData(MQTT_GATEWAY_TELEMETRY_TOPIC, msg);
         continue;
       }
-      
+
       JsonDocument doc;
       DeserializationError error = deserializeJson(doc, msg);
       if (error)
@@ -279,7 +256,7 @@ void handleProcessBufferN2G(void *pvParameters)
 
 void handleProcessBufferG2N(void *pvParameters)
 {
-  while(1)
+  while (1)
   {
     if (!get_bufferG2N()->isEmpty())
     {
@@ -317,8 +294,6 @@ void setup()
   initWatchdogTimer(RESET_WATCHDOG_TIME);
 
   vTaskDelay(pdMS_TO_TICKS(5000));
-
-  // sendCorrectDataToGateway();
 
   // Create Task
   xTaskCreate(LoRaRecvTask, "rcv", 1024 * 4, buffer_N2G, 0, nullptr);
