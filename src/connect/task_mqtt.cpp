@@ -11,6 +11,28 @@ BasicQueue<String> *buffer_S2G = new BasicQueue<String>();
 /*<=================================Private Function=================================>*/
 
 /*<=================================Private Function=================================>*/
+void sendScan2Server()
+{
+    JsonDocument jsonDoc;
+
+    const char *devices[] = {"SmartPole 002", "SmartPole 003"};
+    const char *switchStates[] = {"ok", "ok"};
+
+    for (int i = 0; i < 2; i++)
+    {
+        JsonArray deviceArray = jsonDoc[devices[i]].to<JsonArray>();
+        JsonObject statusObj = deviceArray.add<JsonObject>();
+        statusObj["scan"] = switchStates[i];
+    }
+
+    char buffer[512];
+    serializeJson(jsonDoc, buffer, sizeof(buffer));
+
+    publishData(MQTT_GATEWAY_TELEMETRY_TOPIC, buffer);
+
+    printlnData("Sending Scan to Server:");
+    printlnData(buffer);
+}
 
 void callback(char *topic, byte *payload, unsigned int length)
 {
@@ -29,6 +51,12 @@ void callback(char *topic, byte *payload, unsigned int length)
     {
         printlnData("[MQTT] Data received from Gateway");
         buffer_S2G->push_back(message);
+    }
+    if (String(topic).startsWith("v1/devices/me/rpc/request"))
+    {
+        printlnData("[MQTT] Data scan");
+        delay(7000);
+        sendScan2Server();
     }
 }
 //         // Parse JSON

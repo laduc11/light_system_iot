@@ -2,7 +2,7 @@
 
 BasicQueue<String> *buffer_G2N = new BasicQueue<String>;
 
-BasicQueue<String>* get_bufferG2N()
+BasicQueue<String> *get_bufferG2N()
 {
     return buffer_G2N;
 }
@@ -129,13 +129,13 @@ void LoRaRecvTask(void *pvParameters)
         if (getLoraIns()->RecieveFrame(&data) == 0)
         {
             data_buffer = String(data.recv_data, data.recv_data_len);
-            Serial.print("Data size: ");
-            Serial.println(data.recv_data_len);
-            Serial.print(data_buffer);
+            // Serial.print("Data size: ");
+            // Serial.println(data.recv_data_len);
+            // Serial.print(data_buffer);
 
-            Serial.println();
+            // Serial.println();
             Serial.printf("RSSI: %d dBm\n", data.rssi);
-            Serial.flush();
+            // Serial.flush();
             if (data.rssi != -256 || data.rssi != -1)
                 q->push_back(data_buffer);
         }
@@ -202,12 +202,12 @@ void controlPwm(String device, String value, String &message)
 
 void sendLora(const String &msg)
 {
-    if (getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t*) msg.c_str(), msg.length()) == 0)
+    if (getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)msg.c_str(), msg.length()) == 0)
     {
         printData("Send SUCCESS message via LORA, data: ");
         printlnData(msg);
     }
-    else 
+    else
     {
         printlnData("Send message FAIL via LORA, data: ");
         printlnData(msg);
