@@ -1,5 +1,10 @@
 #include "globals.h"
 
+// define parent and child node
+const uint16_t OWN_ADDRESS = NODE_ADDR2;
+uint16_t PARRENT_ADDR = OWN_ADDRESS - 1;
+uint16_t CHILD_ADDR = OWN_ADDRESS + 1;
+
 // Handle after receive lora package from gateway
 void handleProcessBuffer(void *pvParameters)
 {
@@ -17,18 +22,29 @@ void handleProcessBuffer(void *pvParameters)
       NodeStatus node;
       node = deserializeJsonFormat(pkg);
       // Check destination address
-      if (node.address != getConfigLora()->own_address)
+      if (node.target != getConfigLora()->own_address)
       {
-        Serial.println("Not equal to onw address.");
+        int target = node.target;
+        if (target > getConfigLora()->own_address)
+        {
+          target = CHILD_ADDR;
+        } else
+        {
+          target = PARRENT_ADDR;
+        }
+        getConfigLora()->target_address =(uint16_t) target;
+        Serial.printf("Not equal to onw address. Forward to %04x\n", target);
+        if (getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)pkg.c_str(), pkg.length()) == 0)
+          Serial.println("Forward success.");
         continue;
       }
-
+      getConfigLora()->target_address = PARRENT_ADDR;
       if (node.pwm_val >= 0)
       {
         // Handle dimming control
         // pwm_val = -1: Unchanged
         pwm_set_duty(node.pwm_val);
-        String msg = serializeJsonFormat(String(getConfigLora()->own_address), "PWM", String(node.pwm_val));
+        String msg = serializeJsonFormat(String(getConfigLora()->own_address), String(GATEWAY_ADDR), "PWM", String(node.pwm_val));
         if (getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)msg.c_str(), msg.length()) == 0)
           printlnData("Send message confirm set pwm to GTW");
       }
@@ -52,7 +68,7 @@ void handleProcessBuffer(void *pvParameters)
           {
             digitalWrite(INBUILD_LED_PIN, LOW);
             setRelayOff();
-            String msg = serializeJsonFormat(String(getConfigLora()->own_address), "Relay", "low");
+            String msg = serializeJsonFormat(String(getConfigLora()->own_address), String(GATEWAY_ADDR), "Relay", "low");
             if (getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)msg.c_str(), msg.length()) == 0)
               printlnData("Send message relay LOW to GTW");
           }
@@ -60,7 +76,7 @@ void handleProcessBuffer(void *pvParameters)
           {
             digitalWrite(INBUILD_LED_PIN, HIGH);
             setRelayOn();
-            String msg = serializeJsonFormat(String(getConfigLora()->own_address), "Relay", "high");
+            String msg = serializeJsonFormat(String(getConfigLora()->own_address), String(GATEWAY), "Relay", "high");
             if (getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)msg.c_str(), msg.length()) == 0)
               printlnData("Send message relay HIGH to GTW");
           }
@@ -108,11 +124,11 @@ void setup()
   initWatchdogTimer(RESET_WATCHDOG_TIME);
 
   // Initialize DHT20
-  initDHT20();
+  // initDHT20();
 
   // Initialize LoRa
   initLora();
-  setConfiguration(NODE, 0x0003); // Hard code with address node: 0x0003
+  setConfiguration(NODE, OWN_ADDRESS); // Hard code with address node: 0x0002
 
   // Initialize Network layer and Device layer
   device_init();
@@ -120,8 +136,8 @@ void setup()
   // Create task for RTOS
   xTaskCreate(handleProcessBuffer, "handle process buffer", 1024 * 8, buffer, 1, nullptr);
   xTaskCreate(LoRaRecvTask, "rcv", 1024 * 8, buffer, 0, nullptr);
-  xTaskCreate(readDataDHT20, "DHT20 data reader", 1024 * 4, nullptr, 1, nullptr);
-  xTaskCreate(updatePeriodPole, "Update period sensor val", 1024 * 10, nullptr, 5, nullptr);
+  // xTaskCreate(readDataDHT20, "DHT20 data reader", 1024 * 4, nullptr, 1, nullptr);
+  // xTaskCreate(updatePeriodPole, "Update period sensor val", 1024 * 10, nullptr, 5, nullptr);
   digitalWrite(INBUILD_LED_PIN, HIGH); // Turn on the LED when set up completely
 }
 

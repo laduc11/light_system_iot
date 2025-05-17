@@ -76,12 +76,14 @@ NodeStatus deserializeJsonFormat(const String &dataraw)
     JsonObject body = doc["Body"].as<JsonObject>();
     // get value from Json message
     String address = body["Address"].as<String>(); // _001 -> 1
+    String target = body["Target"].as<String>();
     JsonObject data = body["data"].as<JsonObject>();
     String state = data["Relay"].as<String>();
     String pwm_val = data["PWM"].as<String>();
 
     // Pass value to Node's attributes
     node.address = address.toInt();
+    node.target = target.toInt();
     node.pwm_val = pwm_val.toInt();
     if (state == "high") // do server gui ve qui dinh high/low
         node.state = 1;
@@ -93,13 +95,14 @@ NodeStatus deserializeJsonFormat(const String &dataraw)
     return node;
 }
 
-String serializeJsonFormat(String address, String method, String value)
+String serializeJsonFormat(String address, String target, String method, String value)
 {
-    // {"Header":"ACK_STT", "Body":{"Address": "1","data":{"Relay":"unchanged", "PWM":"50"}}}
+    // {"Header":"ACK_STT", "Body":{"Address": "1", "Target": "1", data":{"Relay":"unchanged", "PWM":"50"}}}
     JsonDocument doc;
     doc["Header"] = "ACK_STT";
     JsonObject body = doc["Body"].to<JsonObject>();
-    body["Address"] = address;
+    body["Address"] = address; // source address
+    body["Target"] = target;
     JsonObject data = body["data"].to<JsonObject>();
     if (method == "Relay")
     {
@@ -150,8 +153,9 @@ void controlRelay(String device, String state, String &message)
         Serial.println("LoRa is not initialized or config fail");
         return;
     }
-    String address = device.substring(device.indexOf(' '));
-    message = serializeJsonFormat(address, "Relay", state);
+    String target = device.substring(device.indexOf(' '));
+    String address = String(GATEWAY_ADDR);
+    message = serializeJsonFormat(address, target, "Relay", state);
 
     // Push message to Sending buffer (buffer gateway to Node)
     buffer_G2N->push_back(message);
@@ -179,8 +183,9 @@ void controlPwm(String device, String value, String &message)
         return;
     }
     // msg = device + " { " + pwm_template + value + " }"; // SmartPole 001 { PWM: 50 }
-    String address = device.substring(device.indexOf(' '));
-    message = serializeJsonFormat(address, "PWM", value);
+    String target = device.substring(device.indexOf(' '));
+    String address = String(GATEWAY_ADDR);
+    message = serializeJsonFormat(address, target, "PWM", value);
 
     // Push message to Sending buffer (buffer gateway to Node)
     buffer_G2N->push_back(message);
@@ -204,7 +209,7 @@ void sendLora(const String &msg)
 {
     if (getLoraIns()->SendFrame(*(getConfigLora()), (uint8_t *)msg.c_str(), msg.length()) == 0)
     {
-        printData("Send SUCCESS message via LORA, data: ");
+        printData("Send SUCCESS message via LORA to addr 2, data: ");
         printlnData(msg);
     }
     else

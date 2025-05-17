@@ -20,7 +20,7 @@ LoRaConfigItem_t *getGatewayConfiguration(uint16_t address)
     configuration->lbt_flag = LBT_DISABLE;
     configuration->wor_cycle = WOR_2000MS;
     configuration->encryption_key = 0;
-    configuration->target_address = 0xffff;
+    configuration->target_address = 0xFFFF;
     configuration->target_channel = 0x00;
     return configuration;
 }

@@ -258,6 +258,7 @@ void handleProcessBufferG2N(void *pvParameters)
 {
   while (1)
   {
+    getConfigLora()->target_address = NODE_ADDR2;
     if (!get_bufferG2N()->isEmpty())
     {
       sendLora(get_bufferG2N()->pop());
@@ -279,7 +280,7 @@ void setup()
 
   // Initialize LoRa
   initLora();
-  setConfiguration(GATEWAY, 0x0001);
+  setConfiguration(GATEWAY, GATEWAY_ADDR);
 
   // Initialize Network layer
   connect_init();

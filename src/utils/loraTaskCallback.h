@@ -7,11 +7,13 @@ class NodeStatus
 {
 public:
   int address;
+  int target;
   int state;
   int pwm_val;
-  NodeStatus(int add = -1, int state = 0, int val = -1)
+  NodeStatus(int add = -1, int target = -1, int state = 0, int val = -1)
   {
     this->address = add;
+    this->target = target;
     this->state = state;
     this->pwm_val = val;
   }
@@ -37,7 +39,7 @@ BasicQueue<String>* get_bufferG2N();
 NodeStatus deserializeJsonFormat(const String &dataraw);
 
 // AT GATEWAY WRAP TO SEND NODE
-String serializeJsonFormat(String address, String method, String value);
+String serializeJsonFormat(String address, String target, String method, String value);
 
 // RECEIVE LORA CALLBACK
 void LoRaRecvTask(void *pvParameters);
