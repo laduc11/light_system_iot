@@ -47,6 +47,9 @@
 // DEFINE PIN
 #define POLE_LED_PIN 5
 
+// DEFINE ANALOG PIN
+#define ANALOG_PIN 12
+
 // UART COMMON
 #define UART_RXD_DEBUG_PIN 16
 #define UART_TXD_DEBUG_PIN 17
@@ -88,13 +91,9 @@
 
 #define MQTT_FEED_NOTHING ""
 // #define MQTT_FEED_POLE_02 "BK_SmartPole/feeds/V20"
-#define MQTT_SENDING_VALUE "v1/gateway/telemetry"
+#define MQTT_GATEWAY_TELEMETRY_TOPIC "v1/gateway/telemetry"
+#define MQTT_GATEWAY_ATTRIBUTES_TOPIC "v1/gateway/attributes"
 #define MQTT_REQUEST_TOPIC "v1/devices/me/rpc/request/+"
-#define MQTT_FEED_TEST_LORA "BK_SmartPole/feeds/V5"
-#define MQTT_FEED_TEST_LORA_SEND "BK_SmartPole/feeds/V4"
-#define MQTT_FEED_TEST_MQTT "BK_SmartPole/feeds/V3"
-#define MQTT_FEED_TEST_LORA_RECV "BK_SmartPole/feeds/V2"
-#define MQTT_FEED_TEST_DIMMING "BK_SmartPole/Feeds/V1"
 
 // DEFINE WIFI AP
 #define WIFI_SSID "Fatcat"
@@ -122,7 +121,8 @@
 #define delay_handle_lora_buffer (100)
 #define delay_waiting_ack_process (1000)
 #define delay_dimming_debug (100)
-#define delay_process_buffer (10000)
+#define delay_process_buffer (100)
+#define delay_sending_period_value (4000)
 
 // DEFINE WATCH DOG
 #define RESET_WATCHDOG_TIME (120) // seconds
@@ -135,16 +135,12 @@
 // DEFINE I2C
 #define SDA_PIN 21
 #define SCL_PIN 22
-#define I2C_BAUDRATE    (100 * 1000)
-#define I2C_READ_DATA_PERIOD (3000)      // Read data every 3 seconds
+#define I2C_BAUDRATE (100 * 1000)
+#define I2C_READ_DATA_PERIOD (3000) // Read data every 3 seconds
 
 // DEFINE JSON MODE
 #define ON_JSON 1
 #define OFF_JSON 0
-
-// DEFINE LONG LAT
-const float LONGITUDE = 106.806;
-const float LATITUDE = 10.8801;
 
 // TOKEN GATEWAY
 #define TOKEN_GATEWAY "I4pP9auSdf6KzYU0PmWV"

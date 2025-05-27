@@ -6,9 +6,33 @@ String password = MQTT_PASSWORD;
 WiFiClient espClient;
 PubSubClient client(espClient);
 
+BasicQueue<String> *buffer_S2G = new BasicQueue<String>();
+
 /*<=================================Private Function=================================>*/
 
 /*<=================================Private Function=================================>*/
+void sendScan2Server()
+{
+    JsonDocument jsonDoc;
+
+    const char *devices[] = {"SmartPole 002", "SmartPole 003"};
+    const char *switchStates[] = {"ok", "ok"};
+
+    for (int i = 0; i < 2; i++)
+    {
+        JsonArray deviceArray = jsonDoc[devices[i]].to<JsonArray>();
+        JsonObject statusObj = deviceArray.add<JsonObject>();
+        statusObj["scan"] = switchStates[i];
+    }
+
+    char buffer[512];
+    serializeJson(jsonDoc, buffer, sizeof(buffer));
+
+    publishData(MQTT_GATEWAY_TELEMETRY_TOPIC, buffer);
+
+    printlnData("Sending Scan to Server:");
+    printlnData(buffer);
+}
 
 void callback(char *topic, byte *payload, unsigned int length)
 {
@@ -26,77 +50,86 @@ void callback(char *topic, byte *payload, unsigned int length)
     if (String(topic).startsWith("v1/gateway/rpc"))
     {
         printlnData("[MQTT] Data received from Gateway");
-        // Parse JSON
-        JsonDocument doc;
-        DeserializationError error = deserializeJson(doc, message);
-
-        if (error)
-        {
-            printData("[ERROR] deserializeJson() failed: ");
-            printlnData(error.f_str());
-            return;
-        }
-
-        // Get value from package receivce from server
-        String device = doc["device"].as<String>();
-        JsonObject data = doc["data"].as<JsonObject>();
-        String method = data["method"].as<String>();
-        String params = data["params"].as<String>();
-
-        printData("Method: ");
-        printlnData(method);
-        printData("Params: ");
-        printlnData(params);
-        if (device == "SmartPole 001" || device == "SmartPole 002")
-        {
-            if (method == "setState")
-            {
-                printData("Check for ");
-                printlnData(device);
-                // Code for sending message to control relay with LoRa to node
-                controlRelay(device, params);
-
-                // Publish message to server to synchronous state of device
-                JsonDocument jsonDoc;
-
-                JsonArray deviceArray = jsonDoc[device].to<JsonArray>();
-                JsonObject statusObj = deviceArray.add<JsonObject>();
-                statusObj["switchstate"] = params;
-
-                char buffer[512];
-                serializeJson(jsonDoc, buffer, sizeof(buffer));
-
-                publishData(MQTT_SENDING_VALUE, buffer);
-
-                printlnData("Updating Relay state for device");
-                printlnData(buffer);
-            }
-            if (method == "setPWM")
-            {
-                printData("Check for ");
-                printlnData(device);
-
-                // Code for sending messag to adjust pwm value with LoRa to node
-                controlPwm(device, params);
-                // Publish message to server to synchronous state of device
-
-                JsonDocument jsonDoc;
-
-                JsonArray deviceArray = jsonDoc[device].to<JsonArray>();
-                JsonObject statusObj = deviceArray.add<JsonObject>();
-                statusObj["pwm_value"] = params;
-
-                char buffer[512];
-                serializeJson(jsonDoc, buffer, sizeof(buffer));
-
-                publishData(MQTT_SENDING_VALUE, buffer);
-
-                printlnData("Updating PWM value for device");
-                printlnData(buffer);
-            }
-        }
+        buffer_S2G->push_back(message);
+    }
+    if (String(topic).startsWith("v1/devices/me/rpc/request"))
+    {
+        printlnData("[MQTT] Data scan");
+        delay(7000);
+        sendScan2Server();
     }
 }
+//         // Parse JSON
+//         JsonDocument doc;
+//         DeserializationError error = deserializeJson(doc, message);
+
+//         if (error)
+//         {
+//             printData("[ERROR] deserializeJson() failed: ");
+//             printlnData(error.f_str());
+//             return;
+//         }
+
+//         // Get value from package receivce from server
+//         String device = doc["device"].as<String>();
+//         JsonObject data = doc["data"].as<JsonObject>();
+//         String method = data["method"].as<String>();
+//         String params = data["params"].as<String>();
+
+//         printData("Method: ");
+//         printlnData(method);
+//         printData("Params: ");
+//         printlnData(params);
+//         if (device == "SmartPole 001" || device == "SmartPole 002")
+//         {
+//             if (method == "setState")
+//             {
+//                 printData("Check for ");
+//                 printlnData(device);
+//                 // Code for sending message to control relay with LoRa to node
+//                 controlRelay(device, params);
+
+//                 // Publish message to server to synchronous state of device
+//                 JsonDocument jsonDoc;
+
+//                 JsonArray deviceArray = jsonDoc[device].to<JsonArray>();
+//                 JsonObject statusObj = deviceArray.add<JsonObject>();
+//                 statusObj["switchstate"] = params;
+
+//                 char buffer[512];
+//                 serializeJson(jsonDoc, buffer, sizeof(buffer));
+
+//                 publishData(MQTT_SENDING_VALUE, buffer);
+
+//                 printlnData("Updating Relay state for device");
+//                 printlnData(buffer);
+//             }
+//             if (method == "setPWM")
+//             {
+//                 printData("Check for ");
+//                 printlnData(device);
+
+//                 // Code for sending messag to adjust pwm value with LoRa to node
+//                 controlPwm(device, params);
+//                 // Publish message to server to synchronous state of device
+
+//                 JsonDocument jsonDoc;
+
+//                 JsonArray deviceArray = jsonDoc[device].to<JsonArray>();
+//                 JsonObject statusObj = deviceArray.add<JsonObject>();
+//                 statusObj["pwm_value"] = params;
+
+//                 char buffer[512];
+//                 serializeJson(jsonDoc, buffer, sizeof(buffer));
+
+//                 publishData(MQTT_SENDING_VALUE, buffer);
+
+//                 printlnData("Updating PWM value for device");
+//                 printlnData(buffer);
+//             }
+//         }
+//     }
+// }
 
 void reconnectMQTT()
 {
